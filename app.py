@@ -903,8 +903,14 @@ def admin_dashboard():
         status: Booking.query.filter_by(shop_id=g.shop.id, status=status).count()
         for status in BOOKING_STATUSES
     }
+    product_count = Product.query.filter_by(shop_id=g.shop.id).count()
     bookings = Booking.query.filter_by(shop_id=g.shop.id).order_by(Booking.created_at.desc()).limit(50).all()
-    return render_template("admin/dashboard.html", counts=counts, bookings=bookings)
+    return render_template(
+        "admin/dashboard.html",
+        counts=counts,
+        bookings=bookings,
+        product_count=product_count,
+    )
 
 
 @app.route("/admin/owners", methods=["GET", "POST"])

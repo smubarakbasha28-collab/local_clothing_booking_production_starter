@@ -4,6 +4,12 @@
 <span class="eyebrow">OVERVIEW</span><h1 class="section-title">Shop dashboard</h1><p class="text-secondary">Review new orders and accept or reject each request before preparing it.</p>
 <div class="mb-4"><a class="btn btn-success" href="{{ url_for('admin_owners') }}">Create another owner account</a></div>
 <div class="row g-3 mb-4">
+<div class="col-6 col-xl-4">
+  <a class="stat-card d-block h-100 text-decoration-none" href="{{ url_for('admin_products') }}" aria-label="View {{ product_count }} products">
+    <div class="small text-secondary">Total products added</div><div class="stat-number">{{ product_count }}</div>
+    <span class="small text-success">View products &amp; stock →</span>
+  </a>
+</div>
 {% for status, count in counts.items() %}
 <div class="col-6 col-xl-4">
   <a class="stat-card d-block h-100 text-decoration-none" href="{{ url_for('admin_bookings', status=status) }}" aria-label="View {{ count }} {{ status }} bookings">
