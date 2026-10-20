@@ -56,6 +56,19 @@ Render's free web service can sleep when idle, its local filesystem is temporary
 
 The app stores Cloudinary assets by public ID and continues to support local `uploads/` paths for local development. Newly uploaded product, storefront, and payment images use Cloudinary when `CLOUDINARY_URL` is configured. Existing local photo files must be migrated separately before switching an existing shop to this deployment.
 
+### Migrate an existing local shop to Neon and Cloudinary
+
+After deploying the latest code and confirming Render is **Live**, run this one-time migration from the project folder on the computer that has the original `instance/shop.db` and `static/uploads` files:
+
+```powershell
+git pull
+.\.venv\Scripts\python.exe migrate_existing_data.py
+```
+
+The script prompts for the Neon PostgreSQL connection string and Cloudinary environment URL without showing the characters as you type. It copies the shops, owner password hashes, products, bookings, payment settings, and referenced uploaded images. It preserves IDs so existing relationships and passwords remain valid. The destination may contain only the empty default shop created by `init-db`; the script stops rather than overwrite a destination containing other records. Run it only once. If it reports an error, do not retry against a partially populated destination; inspect the error and destination first.
+
+The migration does not change the local SQLite file or delete local images. Back up `instance/shop.db` and `static/uploads` before starting. Do not paste the Neon or Cloudinary values into chat or commit them to Git.
+
 ## Run locally (Windows)
 
 1. Install Python 3.11 or 3.12.
@@ -99,35 +112,13 @@ The app stores Cloudinary assets by public ID and continues to support local `up
 
 8. Visit `http://127.0.0.1:5000`. Create a shop from the home-page signup link, or visit an existing shop's `/shop/<shop-slug>/admin/login` page.
 
-## Deploy free using Render + Supabase PostgreSQL
-
-Free tiers and limits can change. Check current provider terms before deploying. Render free web services may sleep after inactivity; the first request can be slow. A free service is not a reliability guarantee.
-
-1. Create a GitHub account and a new private repository. Upload the project files, but **never upload `.env` or secrets**.
-2. Create a Supabase project and copy its PostgreSQL connection string from the database connection settings. Use the provider-recommended connection mode for your host.
-3. Create a Render Web Service from the repository. The included `render.yaml` can help configure it.
-4. Set environment variables in Render:
-   - `SECRET_KEY`: a long random secret
-   - `SHOP_NAME`: optional name for the legacy/demo shop; new shop owners choose their name during signup
-   - `DATABASE_URL`: Supabase PostgreSQL connection string
-   - `COOKIE_SECURE`: `true`
-5. Deploy. In the Render Shell (if available on your plan), run:
-
-   ```bash
-   flask --app app init-db
-   flask --app app create-admin
-   ```
-
-   Enter the owner username and a unique password. If your selected free host does not provide a shell, run these commands once from a trusted computer with the production `DATABASE_URL` and `SECRET_KEY` set in the environment. Do not put passwords into source code.
-6. Open your deployed URL and test a complete booking, cancellation and stock restoration.
-
 ### Product images
 
-Upload up to 10 JPG, PNG, GIF or WEBP images per product from the Products & stock form, with no per-image size limit. New images append to that product's gallery; the customer product page shows a main image with selectable thumbnails, and catalog cards use the first image. A single upload request is limited to 100 MB total. Select product sizes and colors from the owner-form dropdowns, or enter custom values. Images are saved in `static/uploads` on the app server. Local development keeps them on your computer; on hosts with ephemeral filesystems, uploads may be lost on redeploy or restart. Configure persistent disk or object storage before relying on uploaded images in production.
+Upload up to 10 JPG, PNG, GIF or WEBP images per product from the Products & stock form, with no per-image size limit. New images append to that product's gallery; the customer product page shows a main image with selectable thumbnails, and catalog cards use the first image. A single upload request is limited to 100 MB total. Select product sizes and colors from the owner-form dropdowns, or enter custom values. Images use Cloudinary when `CLOUDINARY_URL` is configured; otherwise they are saved locally under `static/uploads`.
 
 ### Optional UPI payments
 
-From the owner dashboard, open **Payment settings** and upload the shop's UPI QR image. Customers can choose online payment and scan it with PhonePe, Google Pay, Paytm or another UPI app, or choose to pay at the shop. Bookings record the customer's preference for the owner. The site does not process or confirm transfers; verify payments independently before marking an order paid or handing over goods. QR images use the same format validation and app-server storage behavior as product images.
+From the owner dashboard, open **Payment settings** and upload the shop's UPI QR image. Customers can choose online payment and scan it with PhonePe, Google Pay, Paytm or another UPI app, or choose to pay at the shop. Bookings record the customer's preference for the owner. The site does not process or confirm transfers; verify payments independently before marking an order paid or handing over goods. QR images use the same format validation and cloud/local storage behavior as product images.
 
 ### Delivery orders
 
@@ -135,7 +126,7 @@ In-store pickup reservations remain available. Delivery is opt-in and off by def
 
 ### Home page shop photo
 
-From the owner dashboard, open **Shop appearance** to upload up to 10 shop front or interior photos for the home page slideshow. JPG, PNG, GIF and WEBP images with no per-image size limit are supported; later uploads append to the slideshow. Photos rotate automatically, with pause, next/previous and slide controls. The homepage scales each photo to fit the slideshow without cropping it. Use **Delete photo** below an individual image to remove it; deleting the primary photo promotes the next one. Removing the entire gallery restores the default artwork. Photos are stored on the app server and follow the same persistent-storage requirements as product images.
+From the owner dashboard, open **Shop appearance** to upload up to 10 shop front or interior photos for the home page slideshow. JPG, PNG, GIF and WEBP images with no per-image size limit are supported; later uploads append to the slideshow. Photos rotate automatically, with pause, next/previous and slide controls. The homepage scales each photo to fit the slideshow without cropping it. Use **Delete photo** below an individual image to remove it; deleting the primary photo promotes the next one. Removing the entire gallery restores the default artwork. Photos use Cloudinary when configured and otherwise require persistent app-server storage.
 
 ## Admin workflow
 

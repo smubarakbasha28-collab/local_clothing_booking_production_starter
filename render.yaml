@@ -4,7 +4,7 @@ services:
     runtime: python
     plan: free
     buildCommand: pip install -r requirements.txt
-    startCommand: flask --app app init-db && gunicorn app:app --workers 1 --threads 4 --timeout 60
+    startCommand: "flask --app app init-db && gunicorn app:app --bind 0.0.0.0:$PORT --workers 1 --threads 4 --timeout 60"
     healthCheckPath: /health
     envVars:
       - key: PYTHON_VERSION
