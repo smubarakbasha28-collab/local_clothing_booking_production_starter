@@ -1,17 +1,43 @@
 {% extends "base.html" %}
 {% block title %}Owner login | Local Fashion Store{% endblock %}
 {% block content %}
-<div class="login-card mx-auto">
-  <span class="eyebrow">SHOP OWNER</span>
-  <h1 class="section-title mt-2">Owner login</h1>
-  <p class="text-secondary">Sign in with the username and password you created for your shop.</p>
-  <form method="post" class="mt-4">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    <label class="form-label" for="username">Username</label>
-    <input class="form-control mb-3" id="username" name="username" value="{{ username }}" required autocomplete="username">
-    <label class="form-label" for="password">Password</label>
-    <input class="form-control mb-4" id="password" name="password" type="password" required autocomplete="current-password">
-    <button class="btn btn-dark btn-lg w-100" type="submit">Sign in</button>
-  </form>
-</div>
+<section class="auth-layout">
+  <div class="auth-story">
+    <span class="eyebrow">A WARMER WAY TO SELL</span>
+    <h1>Make your shop<br><span>feel at home.</span></h1>
+    <p>Keep your collection, bookings and shop details together in one simple place.</p>
+    <div class="auth-story-note"><span aria-hidden="true">✳</span> Made for independent local shops</div>
+  </div>
+  <div class="auth-card">
+    <span class="eyebrow">WELCOME BACK</span>
+    <h2 class="auth-card-title">Owner sign in</h2>
+    <p class="text-secondary mb-4">Use the owner username and password you created for your shop.</p>
+    <form method="post">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <label class="form-label" for="username">Username</label>
+      <input class="form-control mb-3" id="username" name="username" value="{{ username }}" required autocomplete="username">
+      <label class="form-label" for="password">Password</label>
+      <input class="form-control" id="password" name="password" type="password" required autocomplete="current-password">
+      <div class="form-check my-3">
+        <input class="form-check-input" id="show_password" type="checkbox">
+        <label class="form-check-label" for="show_password">Show password</label>
+      </div>
+      <button class="btn btn-dark btn-lg w-100" type="submit">Sign in to your shop</button>
+    </form>
+    <div class="auth-signup-prompt">
+      <span>New to the marketplace?</span>
+      <a href="{{ url_for('owner_signup') }}">Create owner account</a>
+    </div>
+  </div>
+</section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script>
+  const showPassword = document.getElementById("show_password");
+  const passwordInput = document.getElementById("password");
+  showPassword.addEventListener("change", () => {
+    passwordInput.type = showPassword.checked ? "text" : "password";
+  });
+</script>
 {% endblock %}
