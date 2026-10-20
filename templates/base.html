@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Browse local fashion products and reserve them for in-store pickup.">
+  <title>{% block title %}{{ shop_name }}{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="{{ url_for('static', filename='css/style.css', v='fashion-type-flip-touch-v6-20261019') }}" rel="stylesheet">
+</head>
+<body>
+<nav class="navbar navbar-expand-lg navbar-dark site-nav">
+  <div class="container">
+    <a class="navbar-brand fw-bold" href="{{ url_for('home') }}">{{ shop_name }}</a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav" aria-label="Toggle navigation"><span class="navbar-toggler-icon"></span></button>
+    <div class="collapse navbar-collapse" id="mainNav">
+      <div class="navbar-nav ms-auto align-items-lg-center gap-lg-2">
+        {% if request.endpoint == 'admin_login' and current_shop and not session.get('admin_id') %}
+        <a class="nav-link" href="/">Home</a>
+        {% else %}
+        <a class="nav-link" href="{{ url_for('home') }}">Home</a>
+        {% endif %}
+        <a class="nav-link" href="{{ url_for('products') }}">Shop products</a>
+        {% if not session.get('admin_id') %}
+        <a class="nav-link" href="{{ url_for('book') }}">Reserve items</a>
+        {% endif %}
+        {% if session.get('admin_id') %}
+        <a class="btn btn-success btn-sm" href="{{ url_for('admin_dashboard') }}">Shop dashboard</a>
+        <a class="btn btn-outline-light btn-sm" href="{{ url_for('admin_owners') }}">Create owner account</a>
+        <form method="post" action="{{ url_for('admin_logout') }}" class="d-flex align-items-center">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button class="btn btn-outline-light btn-sm" type="submit">Owner logout</button>
+        </form>
+        {% else %}
+        {% if current_shop %}
+        <a class="nav-link" href="{{ url_for('admin_login') }}">Owner login</a>
+        {% else %}
+        <a class="nav-link" href="{{ url_for('owner_login') }}">Owner login</a>
+        <a class="nav-link" href="{{ url_for('owner_signup') }}">Create owner account</a>
+        {% endif %}
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</nav>
+<main class="container py-4 py-lg-5">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">{{ message }}<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button></div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+  {% block content %}{% endblock %}
+</main>
+<footer class="site-footer mt-5">
+  <div class="container py-4 d-flex flex-column flex-md-row justify-content-between gap-2">
+    <span>{{ shop_name }}</span>
+    <span>Reserve online. Pay and collect at the shop.</span>
+  </div>
+</footer>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  document.addEventListener("click", (event) => {
+    const flipButton = event.target.closest(".product-card-flip");
+    if (!flipButton) return;
+    const card = flipButton.closest(".product-card");
+    const isFlipped = card.classList.toggle("is-flipped");
+    card.querySelector(".product-card-front").setAttribute("aria-hidden", isFlipped ? "true" : "false");
+    card.querySelector(".product-card-back").setAttribute("aria-hidden", isFlipped ? "false" : "true");
+    card.querySelectorAll(".product-card-flip").forEach((button) => {
+      button.setAttribute("aria-pressed", isFlipped ? "true" : "false");
+    });
+  });
+</script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

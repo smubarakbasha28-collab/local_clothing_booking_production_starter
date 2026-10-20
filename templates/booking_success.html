@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Booking submitted | {{ shop_name }}{% endblock %}
+{% block content %}
+<div class="success-panel mx-auto text-center">
+  <div class="success-icon">✓</div><span class="eyebrow">{{ 'DELIVERY ORDER RECEIVED' if booking.fulfillment == 'delivery' else 'RESERVATION RECEIVED' }}</span>
+  <h1 class="section-title mt-2">{{ 'Your delivery has been requested.' if booking.fulfillment == 'delivery' else 'Your items have been requested.' }}</h1>
+  <p class="text-secondary">{{ 'The shop will confirm delivery and collect cash when your order arrives.' if booking.fulfillment == 'delivery' else 'Show this booking number to the shop owner when you visit.' }}</p>
+  <div class="booking-code">{{ booking.booking_code }}</div>
+  <div class="text-start border rounded-3 p-3 my-4">
+    <div class="d-flex justify-content-between gap-3"><span class="text-secondary">Name</span><strong>{{ booking.customer_name }}</strong></div>
+    <div class="d-flex justify-content-between gap-3 mt-2"><span class="text-secondary">Order type</span><strong>{{ 'Home delivery' if booking.fulfillment == 'delivery' else 'In-store pickup' }}</strong></div>
+    <div class="d-flex justify-content-between gap-3 mt-2"><span class="text-secondary">{{ 'Preferred delivery time' if booking.fulfillment == 'delivery' else 'Pickup time' }}</span><strong>{{ booking.pickup_at.strftime('%d %b %Y, %I:%M %p') }}</strong></div>
+    <div class="d-flex justify-content-between gap-3 mt-2"><span class="text-secondary">Status</span><strong>{{ booking.status }}</strong></div>
+    <div class="d-flex justify-content-between gap-3 mt-2"><span class="text-secondary">Payment preference</span><strong>{{ 'Cash on delivery' if booking.payment and booking.payment.method == 'cod' else ('Online UPI (verify with shop)' if booking.payment and booking.payment.method == 'online' else 'Pay at the shop') }}</strong></div>
+    <hr>{% for item in booking.items %}
+    <div class="d-flex justify-content-between gap-3 mt-2"><span>{{ item.product_name }} × {{ item.quantity }}{% if item.size %} · {{ item.size }}{% endif %}{% if item.color %} · {{ item.color }}{% endif %}</span><strong>{{ (item.unit_price * item.quantity)|money }}</strong></div>
+    {% endfor %}
+    {% if booking.fulfillment == 'delivery' %}
+    <hr>
+    <div class="d-flex justify-content-between gap-3 mt-2"><span>Approx. distance (straight-line)</span><strong>{{ '%.2f'|format(booking.delivery_distance_km) }} km</strong></div>
+    <div class="d-flex justify-content-between gap-3 mt-2"><span>Estimated delivery fee</span><strong>{{ booking.delivery_fee|money }}</strong></div>
+    <div class="d-flex justify-content-between gap-3 mt-2"><span>Estimated total due on delivery</span><strong>{{ (items_subtotal + booking.delivery_fee)|money }}</strong></div>
+    <p class="small text-secondary mt-2 mb-0">Road distance may differ; the shop will confirm the final delivery fee.</p>
+    {% endif %}
+  </div>
+  {% if booking.payment and booking.payment.method == 'online' and payment_settings %}
+  <div class="border rounded-3 p-3 mb-4">
+    <h2 class="h5">Pay online using UPI</h2>
+    <p class="small text-secondary">Scan with PhonePe, Google Pay, Paytm or another UPI app. Your booking is not marked paid automatically; the shop owner will verify your transfer.</p>
+    <img class="payment-qr-image" src="{{ payment_settings.qr_image_path|product_image_url }}" alt="Shop online payment QR code">
+  </div>
+  {% endif %}
+  <p class="small text-secondary">Save the booking number. To check status, use the booking number and the same mobile number.</p>
+  <a class="btn btn-dark" href="{{ url_for('booking_lookup', booking_code=booking.booking_code) }}">Check booking status</a>
+  <a class="btn btn-outline-dark ms-2" href="{{ url_for('products') }}">Continue browsing</a>
+</div>
+{% endblock %}

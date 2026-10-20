@@ -1,0 +1,223 @@
+{% extends "base.html" %}
+{% block title %}Reserve items | {{ shop_name }}{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-9">
+    <span class="eyebrow">PICKUP OR DELIVERY</span><h1 class="section-title">Order your items</h1>
+    <p class="text-secondary mb-4">Reserve items to pick up at the shop, or request delivery and pay cash when it arrives.</p>
+    <form method="post" class="form-panel"
+          data-shop-latitude="{{ current_shop.latitude if current_shop.latitude is not none else '' }}"
+          data-shop-longitude="{{ current_shop.longitude if current_shop.longitude is not none else '' }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <h2 class="h5 mb-3">Your details</h2>
+      <div class="row g-3">
+        <div class="col-md-6"><label class="form-label" for="customer_name">Full name *</label><input class="form-control" id="customer_name" name="customer_name" required minlength="2" maxlength="120" autocomplete="name"></div>
+        <div class="col-md-6"><label class="form-label" for="phone">Mobile number *</label><input class="form-control" id="phone" name="phone" required inputmode="tel" maxlength="20" autocomplete="tel" placeholder="For booking confirmation"></div>
+        <div class="col-12">
+          <fieldset>
+            <legend class="form-label">How would you like to receive your order?</legend>
+            <div class="d-flex flex-wrap gap-3">
+              <div class="form-check">
+                <input class="form-check-input" type="radio" id="fulfillment_pickup" name="fulfillment" value="pickup" checked>
+                <label class="form-check-label" for="fulfillment_pickup">Reserve for in-store pickup</label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input" type="radio" id="fulfillment_delivery" name="fulfillment" value="delivery" {% if not delivery_enabled %}disabled{% endif %}>
+                <label class="form-check-label" for="fulfillment_delivery">Request home delivery · cash on delivery</label>
+              </div>
+            </div>
+            {% if current_shop.latitude is none or current_shop.longitude is none %}
+            <div class="form-text">Delivery is not available until the shop owner saves the shop location.</div>
+            {% elif not current_shop.delivery_enabled %}
+            <div class="form-text">The shop owner has not enabled delivery. In-store pickup reservations are still available.</div>
+            {% endif %}
+          </fieldset>
+        </div>
+        <div class="col-12" id="delivery-location-panel" hidden>
+          <div class="border rounded-3 p-3">
+            <h2 class="h6">Share your delivery location</h2>
+            <p class="small text-secondary mb-2">Allow location access so the owner can see a map pin and we can estimate the delivery fee.</p>
+            <input type="hidden" id="delivery_latitude" name="delivery_latitude">
+            <input type="hidden" id="delivery_longitude" name="delivery_longitude">
+            <button class="btn btn-outline-dark btn-sm" id="share-delivery-location" type="button">Share current location</button>
+            <div class="small mt-2" id="delivery-location-status" aria-live="polite">Location not shared yet.</div>
+            <div class="small fw-semibold mt-2" id="delivery-fee-estimate" aria-live="polite"></div>
+            <div class="form-text">Estimated at ₹10 per kilometre, rounded up, using straight-line distance. The actual road distance and final fee may differ.</div>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label" id="pickup-time-label" for="pickup_at">Expected shop visit *</label>
+          <input class="form-control pickup-datetime" id="pickup_at" name="pickup_at" type="datetime-local" required>
+          <div class="form-text" id="pickup-time-help">Choose the date and time you plan to visit.</div>
+        </div>
+        <div class="col-md-6"><label class="form-label" for="notes">Notes (optional)</label><input class="form-control" id="notes" name="notes" maxlength="500" placeholder="Any request for the shop"></div>
+      </div>
+      <hr class="my-4">
+      {% if single_product_booking %}
+      <h2 class="h5 mb-3">Your selected item</h2>
+      {% else %}
+      <h2 class="h5 mb-1">Choose products</h2><p class="small text-secondary">Select quantities for the items you want to reserve.</p>
+      {% endif %}
+      <div class="booking-product-list {{ 'single' if single_product_booking else '' }}">
+      {% for product in products %}
+        <section class="booking-product {{ 'unavailable' if product.stock < 1 else '' }}">
+          <div class="booking-product-heading">
+            {% if product|product_primary_image %}
+            <img class="booking-product-image" src="{{ product|product_primary_image }}" alt="{{ product.name }}" loading="lazy">
+            {% endif %}
+            <div class="flex-grow-1">
+              <div class="fw-semibold">{{ product.name }}</div>
+              <div class="small text-secondary">{{ product.category }} · {{ product.price|money }} · {{ product.stock }} available</div>
+            </div>
+            <div class="booking-quantity">
+              <label class="form-label small mb-1" for="qty_{{ product.id }}">Qty</label>
+              <input class="form-control form-control-sm qty-input" id="qty_{{ product.id }}" type="number" name="qty_{{ product.id }}" min="0" max="{{ [product.stock, 10]|min }}" value="{{ 1 if product in selected and product.stock > 0 else 0 }}" {% if product.stock < 1 %}disabled{% endif %} aria-label="Quantity for {{ product.name }}">
+            </div>
+          </div>
+          <div class="booking-product-options">
+            <div>
+              <label class="form-label small" for="size_{{ product.id }}">Size</label>
+              <select class="form-select form-select-sm" id="size_{{ product.id }}" name="size_{{ product.id }}"><option value="">Any</option>{% for size in product.sizes.split(',') if size.strip() %}<option>{{ size.strip() }}</option>{% endfor %}</select>
+            </div>
+            <div>
+              <label class="form-label small" for="color_{{ product.id }}">Color</label>
+              <select class="form-select form-select-sm" id="color_{{ product.id }}" name="color_{{ product.id }}"><option value="">Any</option>{% for color in product.colors.split(',') if color.strip() %}<option>{{ color.strip() }}</option>{% endfor %}</select>
+            </div>
+          </div>
+        </section>
+      {% else %}
+        <div class="empty-state">No products are currently available.</div>
+      {% endfor %}
+      </div>
+      <div class="booking-payment-choice" id="pickup-payment-options">
+        <span class="small fw-semibold">Payment:</span>
+        <div class="form-check">
+          <input class="form-check-input" type="radio" id="payment_shop" name="payment_method" value="shop" checked>
+          <label class="form-check-label" for="payment_shop">Pay at the shop</label>
+        </div>
+        {% if payment_settings %}
+        <div class="form-check">
+          <input class="form-check-input" type="radio" id="payment_online" name="payment_method" value="online">
+          <label class="form-check-label" for="payment_online">Pay online</label>
+        </div>
+        <div class="booking-payment-qr" id="booking-payment-qr" hidden>
+          <p class="small text-secondary mb-2">Scan with a UPI app. The owner verifies payments manually.</p>
+          <img class="payment-qr-image" src="{{ payment_settings.qr_image_path|product_image_url }}" alt="Shop online payment QR code">
+        </div>
+        {% endif %}
+      </div>
+      <div class="booking-payment-choice mt-3" id="delivery-payment-option" hidden>
+        <span class="small fw-semibold">Payment:</span>
+        <input type="hidden" id="payment_cod" name="payment_method" value="cod" disabled>
+        <span>Cash on delivery. Pay the owner when your order arrives.</span>
+      </div>
+      <p class="small text-secondary mt-3" id="order-help">This is a reservation only. The shop will confirm your items when you visit.</p>
+      <button class="btn btn-dark btn-lg w-100" id="submit-order" type="submit">Submit reservation</button>
+    </form>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+  const pickup = document.getElementById("pickup_at");
+  if (pickup) {
+    const now = new Date();
+    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+    pickup.min = now.toISOString().slice(0, 16);
+  }
+  const paymentOptions = document.querySelectorAll('#pickup-payment-options input[name="payment_method"]');
+  const paymentQr = document.getElementById("booking-payment-qr");
+  const bookingForm = document.querySelector(".form-panel[data-shop-latitude]");
+  const deliveryRadio = document.getElementById("fulfillment_delivery");
+  const pickupRadio = document.getElementById("fulfillment_pickup");
+  const deliveryPanel = document.getElementById("delivery-location-panel");
+  const pickupPayments = document.getElementById("pickup-payment-options");
+  const deliveryPayment = document.getElementById("delivery-payment-option");
+  const cashOnDelivery = document.getElementById("payment_cod");
+  const locationLatitude = document.getElementById("delivery_latitude");
+  const locationLongitude = document.getElementById("delivery_longitude");
+  const locationStatus = document.getElementById("delivery-location-status");
+  const feeEstimate = document.getElementById("delivery-fee-estimate");
+  const shareLocationButton = document.getElementById("share-delivery-location");
+  const orderHelp = document.getElementById("order-help");
+  const orderButton = document.getElementById("submit-order");
+  const pickupTimeLabel = document.getElementById("pickup-time-label");
+  const pickupTimeHelp = document.getElementById("pickup-time-help");
+  const isDelivery = () => deliveryRadio?.checked === true;
+
+  const updatePaymentQr = () => {
+    if (paymentQr) {
+      paymentQr.hidden = isDelivery() || document.getElementById("payment_online")?.checked !== true;
+    }
+  };
+  paymentOptions.forEach((option) => option.addEventListener("change", updatePaymentQr));
+  const updateFulfillment = () => {
+    const delivery = isDelivery();
+    deliveryPanel.hidden = !delivery;
+    pickupPayments.hidden = delivery;
+    deliveryPayment.hidden = !delivery;
+    cashOnDelivery.disabled = !delivery;
+    paymentOptions.forEach((option) => {
+      option.disabled = delivery;
+    });
+    orderHelp.textContent = delivery
+      ? "The owner will confirm delivery availability and collect cash when the order arrives."
+      : "This is a reservation only. The shop will confirm your items when you visit.";
+    orderButton.textContent = delivery ? "Place delivery order" : "Submit reservation";
+    pickupTimeLabel.textContent = delivery ? "Preferred delivery time *" : "Expected shop visit *";
+    pickupTimeHelp.textContent = delivery
+      ? "Choose when you would prefer the order to arrive."
+      : "Choose the date and time you plan to visit.";
+    updatePaymentQr();
+  };
+  pickupRadio?.addEventListener("change", updateFulfillment);
+  deliveryRadio?.addEventListener("change", updateFulfillment);
+  shareLocationButton?.addEventListener("click", () => {
+    if (!navigator.geolocation) {
+      locationStatus.textContent = "This browser does not support location sharing.";
+      return;
+    }
+    locationStatus.textContent = "Requesting location permission…";
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const latitude = position.coords.latitude;
+        const longitude = position.coords.longitude;
+        locationLatitude.value = latitude.toFixed(7);
+        locationLongitude.value = longitude.toFixed(7);
+        locationStatus.textContent = `Location shared (${latitude.toFixed(5)}, ${longitude.toFixed(5)}).`;
+        const shopLatitude = Number(bookingForm.dataset.shopLatitude);
+        const shopLongitude = Number(bookingForm.dataset.shopLongitude);
+        const radians = (degrees) => degrees * Math.PI / 180;
+        const latDelta = radians(latitude - shopLatitude);
+        const lonDelta = radians(longitude - shopLongitude);
+        const startLat = radians(shopLatitude);
+        const endLat = radians(latitude);
+        const haversine = Math.min(1, Math.max(0,
+          Math.sin(latDelta / 2) ** 2
+          + Math.cos(startLat) * Math.cos(endLat) * Math.sin(lonDelta / 2) ** 2
+        ));
+        const distance = 6371.0088 * 2 * Math.atan2(Math.sqrt(haversine), Math.sqrt(1 - haversine));
+        const fee = Math.ceil(distance - 1e-9) * 10;
+        feeEstimate.textContent = `About ${distance.toFixed(2)} km straight-line · estimated delivery fee ₹${fee}.`;
+      },
+      (error) => {
+        locationStatus.textContent = error.code === error.PERMISSION_DENIED
+          ? "Location permission was denied. Allow location access and try again."
+          : "Could not get your location. Please try again.";
+        locationLatitude.value = "";
+        locationLongitude.value = "";
+        feeEstimate.textContent = "";
+      },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 }
+    );
+  });
+  bookingForm?.addEventListener("submit", (event) => {
+    if (isDelivery() && (!locationLatitude.value || !locationLongitude.value)) {
+      event.preventDefault();
+      locationStatus.textContent = "Share your current location before placing a delivery order.";
+      shareLocationButton.focus();
+    }
+  });
+  updateFulfillment();
+</script>
+{% endblock %}

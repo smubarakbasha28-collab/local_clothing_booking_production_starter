@@ -1,0 +1,21 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}Dashboard | {{ shop_name }}{% endblock %}
+{% block admin_content %}
+<span class="eyebrow">OVERVIEW</span><h1 class="section-title">Shop dashboard</h1><p class="text-secondary">Review new orders and accept or reject each request before preparing it.</p>
+<div class="mb-4"><a class="btn btn-success" href="{{ url_for('admin_owners') }}">Create another owner account</a></div>
+<div class="row g-3 mb-4">
+{% for status, count in counts.items() %}
+<div class="col-6 col-xl-4">
+  <a class="stat-card d-block h-100 text-decoration-none" href="{{ url_for('admin_bookings', status=status) }}" aria-label="View {{ count }} {{ status }} bookings">
+    <div class="small text-secondary">{{ status }}</div><div class="stat-number">{{ count }}</div>
+    <span class="small text-success">View bookings →</span>
+  </a>
+</div>
+{% endfor %}
+</div>
+<div class="d-flex justify-content-between align-items-center mb-3"><h2 class="h5 mb-0">Recent bookings</h2><a class="btn btn-dark btn-sm" href="{{ url_for('admin_bookings') }}">All bookings</a></div>
+<div class="table-responsive admin-table"><table class="table align-middle"><thead><tr><th>Booking</th><th>Customer</th><th>Pickup time</th><th>Status</th><th></th></tr></thead><tbody>
+{% for b in bookings %}<tr><td class="fw-semibold">{{ b.booking_code }}</td><td>{{ b.customer_name }}<div class="small text-secondary">{{ b.phone }}</div></td><td>{{ b.pickup_at.strftime('%d %b, %I:%M %p') }}</td><td><span class="status-pill">{{ b.status }}</span></td><td><a href="{{ url_for('admin_booking_detail', booking_id=b.id) }}">Open</a></td></tr>
+{% else %}<tr><td colspan="5" class="text-secondary py-4">No bookings yet.</td></tr>{% endfor %}
+</tbody></table></div>
+{% endblock %}

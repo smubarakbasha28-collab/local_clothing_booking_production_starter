@@ -1,0 +1,105 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}Products | {{ shop_name }}{% endblock %}
+{% block admin_content %}
+<span class="eyebrow">CATALOGUE</span><h1 class="section-title">Products & stock</h1>
+<div class="form-panel mb-4">
+  <h2 class="h5 mb-3">{{ 'Edit product' if edit_product else 'Add a product' }}</h2>
+  <form method="post" enctype="multipart/form-data">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    {% if edit_product %}<input type="hidden" name="product_id" value="{{ edit_product.id }}">{% endif %}
+    <div class="row g-3">
+      <div class="col-md-8"><label class="form-label">Product name *</label><input class="form-control" name="name" required maxlength="160" value="{{ edit_product.name if edit_product else '' }}"></div>
+      <div class="col-md-4"><label class="form-label">Category *</label><select class="form-select" name="category" required>{% for cat in categories %}<option value="{{ cat }}" {% if edit_product and edit_product.category == cat %}selected{% endif %}>{{ cat }}</option>{% endfor %}</select></div>
+      <div class="col-md-4"><label class="form-label">Price (₹) *</label><input class="form-control" type="number" name="price" min="0" max="10000000" step="0.01" required value="{{ edit_product.price if edit_product else '' }}"></div>
+      <div class="col-md-4"><label class="form-label">Available stock *</label><input class="form-control" type="number" name="stock" min="0" max="1000000" required value="{{ edit_product.stock if edit_product else 0 }}"></div>
+      <div class="col-md-4">
+        <label class="form-label" for="size-picker">Available sizes</label>
+        <details class="catalog-picker" id="size-picker">
+          <summary>Select sizes</summary>
+          <div class="catalog-picker-options">
+            {% for size in size_options %}
+            <label><input type="checkbox" value="{{ size }}" data-size-option {% if size in selected_sizes %}checked{% endif %}> {{ size }}</label>
+            {% endfor %}
+            {% for size in selected_sizes if size not in size_options %}
+            <label><input type="checkbox" value="{{ size }}" data-size-option checked> {{ size }}</label>
+            {% endfor %}
+          </div>
+        </details>
+        <label class="form-label mt-2" for="custom_sizes">Other sizes (optional)</label>
+        <input class="form-control" id="custom_sizes" maxlength="300" placeholder="Enter custom sizes, separated by commas" value="{{ selected_sizes|reject('in', size_options)|join(', ') }}">
+        <input type="hidden" id="sizes" name="sizes">
+        <div class="form-text">Choose sizes from the dropdown, or add your own. Customers will see these as size choices.</div>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label" for="color-picker">Available colors</label>
+        <details class="catalog-picker" id="color-picker">
+          <summary>Select colors</summary>
+          <div class="catalog-picker-options">
+            {% for color in color_options %}
+            <label><input type="checkbox" value="{{ color }}" data-color-option {% if color in selected_colors %}checked{% endif %}> {{ color }}</label>
+            {% endfor %}
+            {% for color in selected_colors if color not in color_options %}
+            <label><input type="checkbox" value="{{ color }}" data-color-option checked> {{ color }}</label>
+            {% endfor %}
+          </div>
+        </details>
+        <label class="form-label mt-2" for="custom_colors">Other colors (optional)</label>
+        <input class="form-control" id="custom_colors" maxlength="300" placeholder="Enter custom colors, separated by commas" value="{{ selected_colors|reject('in', color_options)|join(', ') }}">
+        <input type="hidden" id="colors" name="colors">
+        <div class="form-text">Choose colors from the dropdown, or add your own. Only these colors appear in the customer reservation list.</div>
+      </div>
+      <div class="col-md-6">
+        <label class="form-label" for="images">Product images</label>
+        <input class="form-control" id="images" type="file" name="images" accept="image/jpeg,image/png,image/gif,image/webp" multiple>
+        <div class="form-text">Select multiple JPG, PNG, GIF or WEBP images. Upload more images later to add them to the same product. Maximum {{ max_product_images }} images per product.</div>
+        {% if edit_product_images %}
+        <p class="small fw-semibold mt-3 mb-2">Current product images ({{ edit_product_images|length }})</p>
+        <div class="admin-product-gallery">
+          {% for image_path in edit_product_images %}
+          <img class="admin-product-preview" src="{{ image_path|product_image_url }}" alt="Image {{ loop.index }} for {{ edit_product.name }}">
+          {% endfor %}
+        </div>
+        {% endif %}
+      </div>
+      <div class="col-12"><label class="form-label">Description</label><textarea class="form-control" name="description" rows="3" maxlength="3000">{{ edit_product.description if edit_product else '' }}</textarea></div>
+      <div class="col-12 form-check ms-2"><input class="form-check-input" type="checkbox" id="active" name="active" {% if not edit_product or edit_product.active %}checked{% endif %}><label class="form-check-label" for="active">Visible to customers</label></div>
+      <div class="col-12"><button class="btn btn-dark">{{ 'Save changes' if edit_product else 'Add product' }}</button>{% if edit_product %}<a class="btn btn-outline-dark ms-2" href="{{ url_for('admin_products') }}">Cancel edit</a>{% endif %}</div>
+    </div>
+  </form>
+</div>
+<h2 class="h5 mb-3">All products</h2>
+<div class="table-responsive admin-table"><table class="table align-middle"><thead><tr><th>Product</th><th>Category</th><th>Price</th><th>Stock</th><th>Visibility</th><th>Actions</th></tr></thead><tbody>
+{% for p in products %}<tr><td><strong>{{ p.name }}</strong><div class="small text-secondary">{{ p.sizes or 'No sizes' }} · {{ p.colors or 'No colors' }}</div></td><td>{{ p.category }}</td><td>{{ p.price|money }}</td><td>{{ p.stock }}</td><td>{{ 'Visible' if p.active else 'Hidden' }}</td><td><div class="d-flex flex-wrap gap-2"><a href="{{ url_for('admin_products', edit=p.id) }}">Edit</a><form method="post" action="{{ url_for('toggle_product', product_id=p.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-link btn-sm p-0">{{ 'Hide' if p.active else 'Show' }}</button></form><form method="post" action="{{ url_for('delete_product', product_id=p.id) }}" onsubmit="return confirm('Delete or hide this product?')"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-link btn-sm text-danger p-0">Delete</button></form></div></td></tr>
+{% else %}<tr><td colspan="6" class="text-secondary">No products yet. Add the first product above.</td></tr>{% endfor %}
+</tbody></table></div>
+{% endblock %}
+{% block scripts %}
+<script>
+  const productForm = document.querySelector('form[enctype="multipart/form-data"]');
+  productForm?.addEventListener("submit", () => {
+    const selectedValues = (selector, customId) => {
+      const selected = [...productForm.querySelectorAll(selector)]
+        .filter((checkbox) => checkbox.checked)
+        .map((checkbox) => checkbox.value.trim());
+      const custom = document.getElementById(customId).value
+        .split(",")
+        .map((value) => value.trim())
+        .filter(Boolean);
+      return [...new Set([...selected, ...custom])].join(", ").slice(0, 300);
+    };
+    document.getElementById("sizes").value = selectedValues("[data-size-option]", "custom_sizes");
+    document.getElementById("colors").value = selectedValues("[data-color-option]", "custom_colors");
+  });
+  const updatePickerLabel = (picker, checkboxSelector, noun) => {
+    const summary = picker.querySelector("summary");
+    const count = picker.querySelectorAll(`${checkboxSelector}:checked`).length;
+    summary.textContent = count ? `${count} ${noun} selected` : `Select ${noun}`;
+  };
+  const sizePicker = document.getElementById("size-picker");
+  const colorPicker = document.getElementById("color-picker");
+  sizePicker.addEventListener("change", () => updatePickerLabel(sizePicker, "[data-size-option]", "sizes"));
+  colorPicker.addEventListener("change", () => updatePickerLabel(colorPicker, "[data-color-option]", "colors"));
+  updatePickerLabel(sizePicker, "[data-size-option]", "sizes");
+  updatePickerLabel(colorPicker, "[data-color-option]", "colors");
+</script>
+{% endblock %}

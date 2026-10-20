@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Booking status | {{ shop_name }}{% endblock %}
+{% block content %}
+<div class="row justify-content-center"><div class="col-lg-7">
+  <span class="eyebrow">BOOKING STATUS</span><h1 class="section-title">Check your reservation</h1>
+  <form class="form-panel mb-4" method="get">
+    <label class="form-label" for="phone">Mobile number used for booking</label>
+    <input class="form-control mb-3" name="phone" id="phone" required inputmode="tel" placeholder="Enter your mobile number">
+    <button class="btn btn-dark">Find booking</button>
+  </form>
+  {% if booking %}
+  <div class="form-panel">
+    <div class="d-flex justify-content-between flex-wrap gap-2"><div><div class="small text-secondary">Booking number</div><h2 class="h4">{{ booking.booking_code }}</h2></div><span class="status-pill">{{ booking.status }}</span></div>
+    {% if booking.status == 'New' %}<p class="alert alert-info mt-3 mb-2">Your order is waiting for the shop owner to accept or reject it.</p>
+    {% elif booking.status == 'Accepted' %}<p class="alert alert-success mt-3 mb-2">The shop accepted your order.</p>
+    {% elif booking.status == 'Rejected' %}<p class="alert alert-warning mt-3 mb-2">The shop could not accept your order. Please contact the shop if you need help.</p>
+    {% elif booking.status == 'Cancelled' %}<p class="alert alert-warning mt-3 mb-2">This order was cancelled by the shop.</p>{% endif %}
+    <p class="mb-1">Customer: <strong>{{ booking.customer_name }}</strong></p>
+    <p>{{ 'Delivery' if booking.fulfillment == 'delivery' else 'Pickup' }}: <strong>{{ booking.pickup_at.strftime('%d %b %Y, %I:%M %p') }}</strong></p>
+    <hr>{% for item in booking.items %}<div class="d-flex justify-content-between gap-2 mb-2"><span>{{ item.product_name }} × {{ item.quantity }}</span><strong>{{ (item.unit_price * item.quantity)|money }}</strong></div>{% endfor %}
+    {% if booking.fulfillment == 'delivery' %}
+    <hr>
+    <div class="d-flex justify-content-between gap-2"><span>Payment</span><strong>Cash on delivery</strong></div>
+    <div class="d-flex justify-content-between gap-2 mt-2"><span>Estimated delivery fee</span><strong>{{ booking.delivery_fee|money }}</strong></div>
+    <p class="small text-secondary mt-2 mb-0">The shop will confirm the route and final delivery fee.</p>
+    {% endif %}
+  </div>
+  {% endif %}
+</div></div>
+{% endblock %}

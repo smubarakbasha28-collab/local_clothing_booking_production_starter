@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Create owner account | {{ shop_name }}{% endblock %}
+{% block content %}
+<div class="login-card mx-auto">
+  <span class="eyebrow">FIRST-TIME SETUP</span><h1 class="section-title mt-2">Create owner account</h1>
+  <p class="text-secondary">This setup is available only until the first owner account is created.</p>
+  <form method="post" class="mt-4">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label class="form-label" for="username">Username</label>
+    <input class="form-control mb-3" id="username" name="username" maxlength="80" required autocomplete="username" value="{{ username }}">
+    <label class="form-label" for="password">Password</label>
+    <input class="form-control mb-3" id="password" name="password" type="password" minlength="12" required autocomplete="new-password">
+    <label class="form-label" for="confirm_password">Confirm password</label>
+    <input class="form-control mb-4" id="confirm_password" name="confirm_password" type="password" minlength="12" required autocomplete="new-password">
+    <div class="form-check mb-4">
+      <input class="form-check-input" id="show_passwords" type="checkbox">
+      <label class="form-check-label" for="show_passwords">Show passwords</label>
+    </div>
+    <button class="btn btn-dark btn-lg w-100">Create owner account</button>
+  </form>
+  <p class="text-center text-secondary mt-4 mb-0"><a href="{{ url_for('admin_login') }}">Back to owner login</a></p>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+  const showPasswords = document.getElementById("show_passwords");
+  if (showPasswords) {
+    showPasswords.addEventListener("change", () => {
+      const inputType = showPasswords.checked ? "text" : "password";
+      document.getElementById("password").type = inputType;
+      document.getElementById("confirm_password").type = inputType;
+    });
+  }
+</script>
+{% endblock %}

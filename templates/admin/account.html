@@ -1,0 +1,39 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}My account | {{ shop_name }}{% endblock %}
+{% block admin_content %}
+<span class="eyebrow">OWNER ACCESS</span>
+<h1 class="section-title">My account</h1>
+<p class="text-secondary">Change the username or password for your own owner login.</p>
+<div class="form-panel">
+  <form method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="mb-3">
+      <label class="form-label" for="username">Username</label>
+      <input class="form-control" id="username" name="username" maxlength="80"
+             value="{{ username }}" required autocomplete="username">
+    </div>
+    <div class="mb-3">
+      <label class="form-label" for="current_password">Current password</label>
+      <input class="form-control" id="current_password" name="current_password"
+             type="password" required autocomplete="current-password">
+      <div class="form-text">Confirm your current password to save account changes.</div>
+    </div>
+    <hr>
+    <h2 class="h5">Change password <span class="text-secondary fw-normal">(optional)</span></h2>
+    <div class="row g-3">
+      <div class="col-md-6">
+        <label class="form-label" for="new_password">New password</label>
+        <input class="form-control" id="new_password" name="new_password" type="password"
+               minlength="12" autocomplete="new-password">
+        <div class="form-text">Leave blank to keep your current password. New passwords must be at least 12 characters.</div>
+      </div>
+      <div class="col-md-6">
+        <label class="form-label" for="confirm_password">Confirm new password</label>
+        <input class="form-control" id="confirm_password" name="confirm_password"
+               type="password" minlength="12" autocomplete="new-password">
+      </div>
+    </div>
+    <button class="btn btn-dark mt-4" type="submit">Save account changes</button>
+  </form>
+</div>
+{% endblock %}

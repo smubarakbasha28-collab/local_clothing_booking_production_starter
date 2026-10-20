@@ -1,0 +1,52 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}Create owner account | {{ shop_name }}{% endblock %}
+{% block admin_content %}
+<span class="eyebrow">OWNER ACCESS</span>
+<h1 class="section-title">Create another owner account</h1>
+<p class="text-secondary">You are signed in to {{ shop_name }}. Create another owner login for this shop.</p>
+<div class="form-panel mb-4">
+  <form method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="row g-3">
+      <div class="col-md-6">
+        <label class="form-label" for="username">Username</label>
+        <input class="form-control" id="username" name="username" maxlength="80" value="{{ username }}" required autocomplete="username">
+      </div>
+      <div class="col-md-6">
+        <label class="form-label" for="password">Password</label>
+        <input class="form-control" id="password" name="password" type="password" minlength="12" required autocomplete="new-password">
+      </div>
+      <div class="col-md-6">
+        <label class="form-label" for="confirm_password">Confirm password</label>
+        <input class="form-control" id="confirm_password" name="confirm_password" type="password" minlength="12" required autocomplete="new-password">
+      </div>
+      <div class="col-12">
+        <div class="form-check">
+          <input class="form-check-input" id="show_passwords" type="checkbox">
+          <label class="form-check-label" for="show_passwords">Show passwords</label>
+        </div>
+      </div>
+      <div class="col-12"><button class="btn btn-dark" type="submit">Create owner account</button></div>
+    </div>
+  </form>
+</div>
+<div class="form-panel">
+  <h2 class="h5 mb-3">Current owner accounts</h2>
+  <ul class="list-group list-group-flush">
+    {% for owner in owners %}
+    <li class="list-group-item px-0">{{ owner.username }}</li>
+    {% endfor %}
+  </ul>
+</div>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script>
+  const showPasswords = document.getElementById("show_passwords");
+  showPasswords.addEventListener("change", () => {
+    const inputType = showPasswords.checked ? "text" : "password";
+    document.getElementById("password").type = inputType;
+    document.getElementById("confirm_password").type = inputType;
+  });
+</script>
+{% endblock %}

@@ -1,0 +1,26 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}Payment settings | {{ shop_name }}{% endblock %}
+{% block admin_content %}
+<span class="eyebrow">CUSTOMER PAYMENTS</span>
+<h1 class="section-title">Payment settings</h1>
+<p class="text-secondary">Upload your shop's PhonePe, Google Pay, Paytm or other UPI QR image. Customers can choose to scan it or pay at the shop.</p>
+<div class="form-panel">
+  <form method="post" enctype="multipart/form-data">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label class="form-label" for="qr_image">UPI payment QR image</label>
+    <input class="form-control" id="qr_image" type="file" name="qr_image" accept="image/jpeg,image/png,image/gif,image/webp">
+    <div class="form-text">Upload a clear JPG, PNG, GIF or WEBP image. Replacing it changes the QR code shown on new and existing online-payment booking pages.</div>
+    {% if payment_settings %}
+    <div class="mt-4">
+      <p class="fw-semibold mb-2">Current payment QR</p>
+      <img class="payment-qr-image" src="{{ payment_settings.qr_image_path|product_image_url }}" alt="Current shop payment QR code">
+    </div>
+    <div class="form-check mt-3">
+      <input class="form-check-input" type="checkbox" id="remove_qr" name="remove_qr">
+      <label class="form-check-label" for="remove_qr">Remove the online payment option</label>
+    </div>
+    {% endif %}
+    <button class="btn btn-dark mt-4" type="submit">{{ 'Save payment QR' if not payment_settings else 'Update payment settings' }}</button>
+  </form>
+</div>
+{% endblock %}

@@ -1,0 +1,98 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}Shop appearance | {{ shop_name }}{% endblock %}
+{% block admin_content %}
+<span class="eyebrow">HOME PAGE</span>
+<h1 class="section-title">Shop appearance</h1>
+<p class="text-secondary">Upload shop front or interior photos. They will rotate automatically at the top of the customer home page.</p>
+<div class="form-panel mb-4">
+  <h2 class="h5">Shop delivery location</h2>
+  <p class="small text-secondary">Save the shop's location so customers can share their location and see an estimated delivery fee.</p>
+  {% if current_shop.latitude is not none and current_shop.longitude is not none %}
+  <p class="small">Saved location: {{ '%.5f'|format(current_shop.latitude) }}, {{ '%.5f'|format(current_shop.longitude) }}</p>
+  {% else %}
+  <p class="small text-warning">No shop location saved yet. Delivery requests are unavailable until you add one.</p>
+  {% endif %}
+  <form method="post" action="{{ url_for('admin_shop_location') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="latitude" id="shop_latitude">
+    <input type="hidden" name="longitude" id="shop_longitude">
+    <button class="btn btn-outline-dark btn-sm" id="share-shop-location" type="button">Use this device's location</button>
+    <button class="btn btn-success btn-sm" type="submit">Save shop location</button>
+    {% if current_shop.latitude is not none and current_shop.longitude is not none %}
+    <button class="btn btn-outline-danger btn-sm" type="submit" name="location_action" value="clear">Clear location</button>
+    {% endif %}
+    <div class="small mt-2" id="shop-location-status" aria-live="polite">Share the shop's exact location before saving.</div>
+  </form>
+  <form method="post" action="{{ url_for('admin_shop_location') }}" class="form-check form-switch mt-3">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="location_action" value="toggle_delivery">
+    <input class="form-check-input" type="checkbox" role="switch" id="delivery_enabled"
+           name="delivery_enabled" {% if current_shop.delivery_enabled %}checked{% endif %}
+           {% if current_shop.latitude is none or current_shop.longitude is none %}disabled{% endif %}
+           onchange="this.form.submit()">
+    <label class="form-check-label fw-semibold" for="delivery_enabled">Enable home delivery and cash on delivery</label>
+    <div class="form-text">{% if current_shop.latitude is none or current_shop.longitude is none %}Save the shop location above to enable this option.{% elif current_shop.delivery_enabled %}Customers can request delivery and pay cash on delivery.{% else %}Delivery is off; customers can only reserve for in-store pickup.{% endif %}</div>
+  </form>
+</div>
+<div class="form-panel">
+  <form method="post" enctype="multipart/form-data">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label class="form-label" for="shop_images">Shop photos</label>
+    <input class="form-control" id="shop_images" type="file" name="shop_images" accept="image/jpeg,image/png,image/gif,image/webp" multiple>
+    <div class="form-text">Choose multiple JPG, PNG, GIF or WEBP images. Upload more later to add to the current slideshow. Maximum {{ max_product_images }} photos total.</div>
+    {% if shop_images %}
+    <div class="form-check mt-3">
+      <input class="form-check-input" type="checkbox" id="remove_image" name="remove_image">
+      <label class="form-check-label" for="remove_image">Remove all shop photos and restore the default artwork</label>
+    </div>
+    {% endif %}
+    <button class="btn btn-dark mt-4" type="submit">{{ 'Save shop photos' if not storefront_settings else 'Add photos' }}</button>
+  </form>
+  {% if shop_images %}
+    <div class="mt-4">
+      <p class="fw-semibold mb-2">Current home page photos ({{ shop_images|length }})</p>
+      <div class="shop-appearance-gallery">
+        {% for photo in shop_photos %}
+        <div>
+          <img class="shop-appearance-preview" src="{{ photo.image_path|product_image_url }}" alt="Shop home page photo {{ loop.index }}">
+          <form method="post"
+                action="{{ url_for('delete_primary_storefront_image') if photo.id is none else url_for('delete_storefront_gallery_image', image_id=photo.id) }}"
+                class="mt-2"
+                onsubmit="return confirm('Delete this shop photo?')">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="btn btn-outline-danger btn-sm w-100" type="submit">Delete photo</button>
+          </form>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script>
+  const shareShopLocation = document.getElementById("share-shop-location");
+  shareShopLocation?.addEventListener("click", () => {
+    const status = document.getElementById("shop-location-status");
+    if (!navigator.geolocation) {
+      status.textContent = "This browser does not support location sharing.";
+      return;
+    }
+    status.textContent = "Requesting location permission…";
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        document.getElementById("shop_latitude").value = position.coords.latitude.toFixed(7);
+        document.getElementById("shop_longitude").value = position.coords.longitude.toFixed(7);
+        status.textContent = `Location ready: ${position.coords.latitude.toFixed(5)}, ${position.coords.longitude.toFixed(5)}. Select Save shop location.`;
+      },
+      (error) => {
+        status.textContent = error.code === error.PERMISSION_DENIED
+          ? "Location permission was denied. Allow location access and try again."
+          : "Could not get this device's location. Please try again.";
+      },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 }
+    );
+  });
+</script>
+{% endblock %}

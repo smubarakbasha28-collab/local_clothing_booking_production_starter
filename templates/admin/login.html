@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Owner login | {{ shop_name }}{% endblock %}
+{% block content %}
+<div class="login-card mx-auto">
+  <span class="eyebrow">PRIVATE AREA</span><h1 class="section-title mt-2">Owner login</h1><p class="text-secondary">Sign in to manage products and reservations.</p>
+  <p class="small text-secondary">Use the username and password created for your owner account.</p>
+  {% if next_url == url_for('admin_owners') %}
+  <div class="alert alert-info" role="status">Sign in to this shop to create another owner account.</div>
+  {% endif %}
+  <form method="post" class="mt-4">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    {% if next_url %}<input type="hidden" name="next" value="{{ next_url }}">{% endif %}
+    <label class="form-label" for="username">Username</label><input class="form-control mb-3" id="username" name="username" required autocomplete="username">
+    <label class="form-label" for="password">Password</label><input class="form-control mb-4" id="password" name="password" type="password" required autocomplete="current-password">
+    <button class="btn btn-dark btn-lg w-100">{% if next_url == url_for('admin_owners') %}Sign in &amp; continue{% else %}Sign in{% endif %}</button>
+  </form>
+  {% if setup_available %}
+  <p class="text-center text-secondary mt-4 mb-0">First time here? <a href="{{ url_for('admin_setup') }}">Create the owner account</a></p>
+  {% endif %}
+</div>
+{% endblock %}

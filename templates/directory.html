@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Fashion shops | Local Fashion Store{% endblock %}
+{% block content %}
+<section class="hero rounded-4 p-4 p-lg-5 mb-5">
+  <span class="eyebrow">LOCAL FASHION MARKETPLACE</span>
+  <h1 class="display-4 fw-bold mt-3">Find your local shop.</h1>
+  <p class="lead mt-3 text-secondary">Browse neighbourhood clothing, shoes and chappals. Each shop has its own catalog and reservations.</p>
+  <div class="d-flex flex-wrap gap-2 mt-4">
+    <a class="btn btn-dark btn-lg" href="{{ url_for('owner_signup') }}">Create owner account</a>
+    <a class="btn btn-outline-dark btn-lg" href="{{ url_for('owner_login') }}">Owner login</a>
+  </div>
+</section>
+<section id="shops">
+  <div class="d-flex justify-content-between align-items-end mb-3">
+    <div><span class="eyebrow">SHOP LOCAL</span><h2 class="section-title mb-0">Browse shops</h2></div>
+  </div>
+  <div class="row g-3">
+    {% for shop in shops %}
+    <div class="col-12 col-md-6 col-lg-4">
+      <article class="form-panel directory-shop-card h-100 d-flex flex-column">
+        <h3 class="h4">{{ shop.name }}</h3>
+        <p class="text-secondary">Browse this shop's products and reserve for pickup.</p>
+        <a class="btn btn-dark mt-auto" href="/shop/{{ shop.slug }}/">Visit shop</a>
+        <a class="small mt-2" href="/shop/{{ shop.slug }}/admin/login">Shop owner sign in</a>
+      </article>
+    </div>
+    {% else %}
+    <div class="col-12"><div class="empty-state">No shops are listed yet. Create an owner account to set up the first shop.</div></div>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

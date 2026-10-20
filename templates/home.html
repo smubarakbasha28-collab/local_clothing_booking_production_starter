@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+{% block title %}{{ shop_name }} | Reserve in store{% endblock %}
+{% block content %}
+<section class="hero rounded-4 p-4 p-lg-5 mb-5">
+  <div class="row align-items-center g-4">
+    <div class="col-lg-7">
+      <span class="eyebrow">YOUR NEIGHBOURHOOD FASHION STORE</span>
+      <h1 class="display-4 fw-bold mt-3">Find your style.<br><span class="accent-text">Order your way.</span></h1>
+      <p class="lead mt-3 text-secondary">Browse clothing, shoes and chappals. Reserve items for pickup{% if current_shop.delivery_enabled and current_shop.latitude is not none and current_shop.longitude is not none %}, or request home delivery with cash on delivery{% endif %}.</p>
+      <div class="d-flex flex-wrap gap-2 mt-4">
+        <a class="btn btn-dark btn-lg" href="{{ url_for('products') }}">Browse products</a>
+        <a class="btn btn-outline-dark btn-lg" href="{{ url_for('book') }}">Order or reserve items</a>
+      </div>
+      <p class="mt-3 mb-0"><a href="{{ url_for('admin_login', next=url_for('admin_owners')) }}">Shop owner sign in</a><span class="small text-secondary"> — sign in to manage this shop.</span></p>
+      {% if not current_shop.delivery_enabled or current_shop.latitude is none or current_shop.longitude is none %}
+      <p class="small text-secondary mt-3 mb-0">In-store pickup reservations are available.</p>
+      {% endif %}
+    </div>
+    <div class="col-lg-5">
+      {% if shop_images %}
+      <div class="shop-hero-carousel" data-interval="5000" aria-label="{{ shop_name }} photos">
+        {% for image in shop_images %}
+        <img class="hero-shop-image {{ 'active' if loop.first else '' }}"
+             src="{{ image }}" alt="{{ shop_name }} photo {{ loop.index }}"
+             aria-hidden="{{ 'false' if loop.first else 'true' }}"
+             {% if not loop.first %}loading="lazy"{% endif %}>
+        {% endfor %}
+        {% if shop_images|length > 1 %}
+        <button class="shop-carousel-control previous" type="button" aria-label="Show previous shop photo">‹</button>
+        <button class="shop-carousel-control next" type="button" aria-label="Show next shop photo">›</button>
+        <div class="shop-carousel-indicators" aria-label="Choose a shop photo">
+          {% for image in shop_images %}
+          <button class="{{ 'active' if loop.first else '' }}" type="button"
+                  aria-label="Show shop photo {{ loop.index }}"
+                  aria-pressed="{{ 'true' if loop.first else 'false' }}"></button>
+          {% endfor %}
+        </div>
+        <button class="shop-carousel-pause" type="button" aria-label="Pause automatic photo rotation">Pause</button>
+        {% endif %}
+      </div>
+      {% else %}
+      <div class="hero-art">
+        <div class="art-card art-one"><span>NEW SEASON</span><strong>Everyday<br>essentials</strong></div>
+        <div class="art-card art-two"><span>STYLE YOUR WAY</span><strong>Clothes &<br>footwear</strong></div>
+        <div class="art-sticker">SHOP<br>LOCAL</div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</section>
+<section class="mb-5">
+  <div class="d-flex justify-content-between align-items-end mb-3"><div><span class="eyebrow">EXPLORE</span><h2 class="section-title mb-0">Shop by category</h2></div><a href="{{ url_for('products') }}" class="text-dark">View all</a></div>
+  <div class="row g-3">
+    {% for category in categories %}
+    <div class="col-6 col-md-4 col-lg">
+      <a class="category-tile {{ 'has-image' if category.image else '' }}" href="{{ url_for('products', category=category.name) }}">
+        {% if category.image %}
+        <img class="category-tile-image" src="{{ category.image }}" alt="{{ category.name }} collection" loading="lazy">
+        {% else %}
+        <span class="category-tile-placeholder" aria-hidden="true">{{ category.name }}</span>
+        {% endif %}
+        <span class="category-tile-label">{{ category.name }}</span><span class="category-arrow">↗</span>
+      </a>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+<section>
+  <div class="d-flex justify-content-between align-items-end mb-3"><div><span class="eyebrow">JUST ADDED</span><h2 class="section-title mb-0">Featured products</h2></div><a href="{{ url_for('products') }}" class="text-dark">See all products</a></div>
+  <div class="row g-3 g-lg-4">
+  {% for product in featured %}
+    <div class="col-6 col-md-4 col-lg-3">{% include "_product_card.html" %}</div>
+  {% else %}
+    <div class="col-12"><div class="empty-state">Products will appear here after the shop owner adds them.</div></div>
+  {% endfor %}
+  </div>
+</section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+{% if shop_images %}
+<script>
+  const shopCarousel = document.querySelector(".shop-hero-carousel");
+  if (shopCarousel) {
+    const slides = [...shopCarousel.querySelectorAll(".hero-shop-image")];
+    const indicators = [...shopCarousel.querySelectorAll(".shop-carousel-indicators button")];
+    const pauseButton = shopCarousel.querySelector(".shop-carousel-pause");
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+    let currentSlide = 0;
+    let paused = reducedMotion.matches;
+    let rotationTimer;
+
+    const fitCarouselToImage = (slide) => {
+      if (!slide.naturalWidth || !slide.naturalHeight) return;
+      const imageHeight = shopCarousel.clientWidth * slide.naturalHeight / slide.naturalWidth;
+      shopCarousel.style.height = `${imageHeight}px`;
+    };
+
+    const showSlide = (index) => {
+      currentSlide = (index + slides.length) % slides.length;
+      slides.forEach((slide, slideIndex) => {
+        slide.classList.toggle("active", slideIndex === currentSlide);
+        slide.setAttribute("aria-hidden", slideIndex === currentSlide ? "false" : "true");
+      });
+      fitCarouselToImage(slides[currentSlide]);
+      indicators.forEach((indicator, indicatorIndex) => {
+        indicator.classList.toggle("active", indicatorIndex === currentSlide);
+        indicator.setAttribute("aria-pressed", indicatorIndex === currentSlide ? "true" : "false");
+      });
+    };
+
+    const stopRotation = () => window.clearInterval(rotationTimer);
+    const startRotation = () => {
+      stopRotation();
+      if (slides.length > 1 && !paused && !reducedMotion.matches) {
+        rotationTimer = window.setInterval(() => showSlide(currentSlide + 1), 5000);
+      }
+      if (pauseButton) {
+        pauseButton.textContent = paused ? "Play" : "Pause";
+        pauseButton.setAttribute("aria-label", paused ? "Resume automatic photo rotation" : "Pause automatic photo rotation");
+      }
+    };
+
+    slides.forEach((slide) => {
+      slide.addEventListener("load", () => fitCarouselToImage(slide));
+    });
+    window.addEventListener("resize", () => fitCarouselToImage(slides[currentSlide]));
+    shopCarousel.querySelector(".previous")?.addEventListener("click", () => showSlide(currentSlide - 1));
+    shopCarousel.querySelector(".next")?.addEventListener("click", () => showSlide(currentSlide + 1));
+    indicators.forEach((indicator, index) => indicator.addEventListener("click", () => showSlide(index)));
+    pauseButton?.addEventListener("click", () => {
+      paused = !paused;
+      startRotation();
+    });
+    shopCarousel.addEventListener("mouseenter", stopRotation);
+    shopCarousel.addEventListener("mouseleave", startRotation);
+    shopCarousel.addEventListener("focusin", stopRotation);
+    shopCarousel.addEventListener("focusout", startRotation);
+    reducedMotion.addEventListener("change", startRotation);
+    showSlide(0);
+    startRotation();
+  }
+</script>
+{% endif %}
+{% endblock %}

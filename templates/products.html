@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Products | {{ shop_name }}{% endblock %}
+{% block content %}
+<div class="d-flex flex-column flex-md-row justify-content-between gap-3 mb-4">
+  <div><span class="eyebrow">THE COLLECTION</span><h1 class="section-title">Shop products</h1><p class="text-secondary">Choose products to reserve for pickup at the shop.</p></div>
+  <form class="d-flex gap-2 align-self-md-start" method="get">
+    <input class="form-control" type="search" name="q" value="{{ q }}" placeholder="Search products" aria-label="Search products">
+    {% if selected_category %}<input type="hidden" name="category" value="{{ selected_category }}">{% endif %}
+    <button class="btn btn-dark">Search</button>
+  </form>
+</div>
+<div class="d-flex flex-wrap gap-2 mb-4">
+  <a class="filter-chip {{ 'active' if not selected_category else '' }}" href="{{ url_for('products', q=q) }}">All products</a>
+  {% for category in categories %}<a class="filter-chip {{ 'active' if selected_category == category else '' }}" href="{{ url_for('products', category=category, q=q) }}">{{ category }}</a>{% endfor %}
+</div>
+<div class="row g-3 g-lg-4">
+{% for product in products %}<div class="col-6 col-md-4 col-lg-3">{% include "_product_card.html" %}</div>
+{% else %}<div class="col-12"><div class="empty-state">No products found. Try another search or category.</div></div>{% endfor %}
+</div>
+{% endblock %}

@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="admin-layout">
+  <section class="admin-booking-notifications" id="admin-booking-notifications"
+           data-after-id="{{ latest_booking_id }}"
+           data-notifications-url="{{ url_for('admin_booking_notifications') }}"
+           aria-live="polite" aria-atomic="false">
+    <span class="small text-secondary" id="admin-booking-notification-status">Watching for new bookings while this owner page is open.</span>
+    <div id="admin-booking-notification-list"></div>
+  </section>
+  <aside class="admin-sidebar">
+    <span class="eyebrow">SHOP OWNER</span><h2 class="h4 mt-2 mb-4">Manage store</h2>
+    <a href="{{ url_for('home') }}">Home</a>
+    <a href="{{ url_for('admin_dashboard') }}">Dashboard</a>
+    <a href="{{ url_for('admin_products') }}">Products & stock</a>
+    <a href="{{ url_for('admin_bookings') }}">Bookings</a>
+    <a href="{{ url_for('admin_payment_settings') }}">Payment settings</a>
+    <a href="{{ url_for('admin_shop_appearance') }}">Shop appearance</a>
+    <a href="{{ url_for('admin_account') }}">My account</a>
+    <a href="{{ url_for('admin_owners') }}">Create owner account</a>
+  </aside>
+  <section class="admin-content">{% block admin_content %}{% endblock %}</section>
+</div>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script>
+  const bookingNotifications = document.getElementById("admin-booking-notifications");
+  if (bookingNotifications) {
+    let lastBookingId = Number(bookingNotifications.dataset.afterId);
+    const notificationList = document.getElementById("admin-booking-notification-list");
+    const notificationStatus = document.getElementById("admin-booking-notification-status");
+    const pollBookings = async () => {
+      try {
+        const response = await fetch(
+          `${bookingNotifications.dataset.notificationsUrl}?after_id=${lastBookingId}`,
+          { headers: { "Accept": "application/json" } }
+        );
+        if (!response.ok) {
+          throw new Error(`Booking check returned ${response.status}.`);
+        }
+        const result = await response.json();
+        result.bookings.forEach((booking) => {
+          const alert = document.createElement("article");
+          alert.className = "alert alert-success mb-2";
+
+          const heading = document.createElement("strong");
+          heading.textContent = `New ${booking.fulfillment === "delivery" ? "delivery order" : "reservation"} ${booking.booking_code} — ${booking.customer_name}`;
+          alert.appendChild(heading);
+
+          const details = document.createElement("p");
+          details.className = "small mb-1";
+          details.textContent = `Phone: ${booking.phone} · ${booking.fulfillment === "delivery" ? "Delivery requested" : "Pickup"}: ${booking.pickup_at} · Payment: ${booking.payment_method === "cod" ? "Cash on delivery" : booking.payment_method === "online" ? "Online UPI — verify manually" : "Pay at shop"}${booking.fulfillment === "delivery" ? ` · Estimated delivery fee ₹${booking.delivery_fee}` : ""}`;
+          alert.appendChild(details);
+
+          if (booking.delivery_map_url) {
+            const map = document.createElement("a");
+            map.href = booking.delivery_map_url;
+            map.target = "_blank";
+            map.rel = "noopener";
+            map.className = "small d-block mb-2";
+            map.textContent = "Open customer location";
+            alert.appendChild(map);
+          }
+
+          const items = document.createElement("ul");
+          items.className = "small mb-2";
+          booking.items.forEach((item) => {
+            const listItem = document.createElement("li");
+            listItem.textContent = `${item.name} × ${item.quantity} · Size: ${item.size} · Color: ${item.color}`;
+            items.appendChild(listItem);
+          });
+          alert.appendChild(items);
+
+          const link = document.createElement("a");
+          link.className = "alert-link";
+          link.href = booking.url;
+          link.textContent = "Open booking";
+          alert.appendChild(link);
+
+          notificationList.prepend(alert);
+          lastBookingId = Math.max(lastBookingId, booking.id);
+        });
+        notificationStatus.textContent = "Watching for new bookings while this owner page is open.";
+      } catch (error) {
+        notificationStatus.textContent = "Could not check for new bookings. This page will try again.";
+        console.error("Booking notification check failed:", error);
+      }
+    };
+    window.setInterval(pollBookings, 10000);
+  }
+</script>
+{% endblock %}

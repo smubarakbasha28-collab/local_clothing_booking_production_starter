@@ -1,0 +1,25 @@
+<div class="product-card h-100">
+  <div class="product-card-inner">
+    <div class="product-card-face product-card-front" aria-hidden="false">
+      <a href="{{ url_for('product_detail', product_id=product.id) }}" class="product-image-wrap">
+        {% if product|product_primary_image %}<img src="{{ product|product_primary_image }}" alt="{{ product.name }}" loading="lazy" referrerpolicy="no-referrer">
+        {% else %}<div class="image-placeholder"><span>PRODUCT IMAGE</span></div>{% endif %}
+      </a>
+      <div class="p-3">
+        <div class="small text-secondary">{{ product.category }}</div>
+        <a class="product-name" href="{{ url_for('product_detail', product_id=product.id) }}">{{ product.name }}</a>
+        <div class="d-flex align-items-center justify-content-between mt-2 gap-2"><strong>{{ product.price|money }}</strong><span class="small {{ 'text-danger' if product.stock < 1 else 'text-secondary' }}">{{ 'Out of stock' if product.stock < 1 else product.stock ~ ' left' }}</span></div>
+        <a class="btn btn-sm btn-outline-dark w-100 mt-3" href="{{ url_for('product_detail', product_id=product.id) }}">View details</a>
+        <button class="product-card-flip mt-2" type="button" aria-label="Show quick details" aria-pressed="false">Quick view ↻</button>
+      </div>
+    </div>
+    <div class="product-card-face product-card-back" aria-hidden="true">
+      <button class="product-card-flip product-card-flip-back align-self-start mb-3" type="button" aria-label="Show product image" aria-pressed="false">Back to image ↻</button>
+      <span class="eyebrow">{{ product.category }}</span>
+      <h3 class="h4 mt-3">{{ product.name }}</h3>
+      <p class="text-secondary">{{ product.description or "Discover this item in the shop." }}</p>
+      <strong class="fs-5 mt-auto">{{ product.price|money }}</strong>
+      <a class="btn btn-dark w-100 mt-3" href="{{ url_for('product_detail', product_id=product.id) }}">Explore this item</a>
+    </div>
+  </div>
+</div>

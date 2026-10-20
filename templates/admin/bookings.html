@@ -1,0 +1,14 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}Bookings | {{ shop_name }}{% endblock %}
+{% block admin_content %}
+<span class="eyebrow">RESERVATIONS</span><h1 class="section-title">Bookings</h1>
+<form method="get" class="row g-2 mb-4">
+  <div class="col-md-6"><input class="form-control" name="q" value="{{ q }}" placeholder="Search name, mobile or booking code"></div>
+  <div class="col-md-4"><select class="form-select" name="status"><option value="">All statuses</option>{% for s in statuses %}<option value="{{ s }}" {% if selected_status == s %}selected{% endif %}>{{ s }}</option>{% endfor %}</select></div>
+  <div class="col-md-2"><button class="btn btn-dark w-100">Filter</button></div>
+</form>
+<div class="table-responsive admin-table"><table class="table align-middle"><thead><tr><th>Booking</th><th>Customer</th><th>Items</th><th>Fulfillment / time</th><th>Status</th><th></th></tr></thead><tbody>
+{% for b in bookings %}<tr><td><strong>{{ b.booking_code }}</strong><div class="small text-secondary">{{ b.created_at.strftime('%d %b %Y') }}</div></td><td>{{ b.customer_name }}<div class="small text-secondary">{{ b.phone }}</div></td><td>{% for item in b.items %}<div>{{ item.product_name }} × {{ item.quantity }}{% if item.size %} · {{ item.size }}{% endif %}{% if item.color %} · {{ item.color }}{% endif %}</div>{% endfor %}</td><td>{{ 'Delivery' if b.fulfillment == 'delivery' else 'Pickup' }}<div class="small text-secondary">{{ b.pickup_at.strftime('%d %b, %I:%M %p') }}</div>{% if b.fulfillment == 'delivery' %}<div class="small">{{ b.delivery_fee|money }} delivery · <a href="https://www.google.com/maps?q={{ b.delivery_latitude }},{{ b.delivery_longitude }}" target="_blank" rel="noopener">Map</a></div>{% endif %}</td><td><span class="status-pill">{{ b.status }}</span><div class="small text-secondary mt-1">{{ 'Cash on delivery' if b.payment and b.payment.method == 'cod' else ('Online UPI — verify' if b.payment and b.payment.method == 'online' else 'Pay at shop') }}</div></td><td><a href="{{ url_for('admin_booking_detail', booking_id=b.id) }}">Open</a></td></tr>
+{% else %}<tr><td colspan="6" class="text-secondary py-4">No bookings match.</td></tr>{% endfor %}
+</tbody></table></div>
+{% endblock %}

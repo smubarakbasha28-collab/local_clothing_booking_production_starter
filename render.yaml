@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: local-fashion-booking
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: flask --app app init-db && gunicorn app:app --workers 1 --threads 4 --timeout 60
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.7
+      - key: SECRET_KEY
+        generateValue: true
+      - key: SHOP_NAME
+        value: Local Fashion Store
+      - key: DATABASE_URL
+        sync: false
+      - key: CLOUDINARY_URL
+        sync: false
+      - key: COOKIE_SECURE
+        value: "true"

@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Owner login | Local Fashion Store{% endblock %}
+{% block content %}
+<div class="login-card mx-auto">
+  <span class="eyebrow">SHOP OWNER</span>
+  <h1 class="section-title mt-2">Owner login</h1>
+  <p class="text-secondary">Sign in with the username and password you created for your shop.</p>
+  <form method="post" class="mt-4">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label class="form-label" for="username">Username</label>
+    <input class="form-control mb-3" id="username" name="username" value="{{ username }}" required autocomplete="username">
+    <label class="form-label" for="password">Password</label>
+    <input class="form-control mb-4" id="password" name="password" type="password" required autocomplete="current-password">
+    <button class="btn btn-dark btn-lg w-100" type="submit">Sign in</button>
+  </form>
+</div>
+{% endblock %}

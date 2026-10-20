@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}{{ product.name }} | {{ shop_name }}{% endblock %}
+{% block content %}
+<div class="row g-4 g-lg-5">
+  <div class="col-md-6">
+    {% if product_images %}
+    <div class="product-gallery">
+      <img class="detail-image" id="product-gallery-main" src="{{ product_images[0]|product_image_url }}" alt="{{ product.name }}" referrerpolicy="no-referrer">
+      {% if product_images|length > 1 %}
+      <div class="product-gallery-thumbnails" aria-label="More images of {{ product.name }}">
+        {% for image_path in product_images %}
+        <button class="product-gallery-thumbnail {{ 'active' if loop.first else '' }}" type="button" data-image-src="{{ image_path|product_image_url }}" data-image-alt="{{ product.name }} - image {{ loop.index }}" aria-label="Show image {{ loop.index }} of {{ product_images|length }}" aria-pressed="{{ 'true' if loop.first else 'false' }}">
+          <img src="{{ image_path|product_image_url }}" alt="" loading="lazy">
+        </button>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </div>
+    {% else %}<div class="detail-image image-placeholder"><span>PRODUCT IMAGE</span></div>{% endif %}
+  </div>
+  <div class="col-md-6">
+    <span class="eyebrow">{{ product.category }}</span>
+    <h1 class="display-5 fw-bold mt-2">{{ product.name }}</h1>
+    <div class="price-large mt-3">{{ product.price|money }}</div>
+    <p class="text-secondary mt-3">{{ product.description or "Ask the shop owner for product details." }}</p>
+    <div class="product-meta">
+      <div><span>Available stock</span><strong>{{ product.stock }}</strong></div>
+      <div><span>Sizes</span><strong>{{ product.sizes or "Confirm at shop" }}</strong></div>
+      <div><span>Colors</span><strong>{{ product.colors or "Confirm at shop" }}</strong></div>
+    </div>
+    {% if product.stock > 0 %}
+      <a class="btn btn-dark btn-lg w-100 mt-4" href="{{ url_for('book', product_ids=product.id) }}">Reserve this item</a>
+    {% else %}<button class="btn btn-secondary btn-lg w-100 mt-4" disabled>Currently out of stock</button>{% endif %}
+    <p class="small text-secondary mt-3">This is a reservation only. Pay and collect in person at the shop.</p>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+  const galleryMain = document.getElementById("product-gallery-main");
+  if (galleryMain) {
+    document.querySelectorAll(".product-gallery-thumbnail").forEach((thumbnail) => {
+      thumbnail.addEventListener("click", () => {
+        galleryMain.src = thumbnail.dataset.imageSrc;
+        galleryMain.alt = thumbnail.dataset.imageAlt;
+        document.querySelectorAll(".product-gallery-thumbnail").forEach((item) => {
+          item.classList.toggle("active", item === thumbnail);
+          item.setAttribute("aria-pressed", item === thumbnail ? "true" : "false");
+        });
+      });
+    });
+  }
+</script>
+{% endblock %}
