@@ -13,7 +13,15 @@
       <h2 class="h5 mb-3">Your details</h2>
       <div class="row g-3">
         <div class="col-md-6"><label class="form-label" for="customer_name">Full name *</label><input class="form-control" id="customer_name" name="customer_name" required minlength="2" maxlength="120" autocomplete="name"></div>
-        <div class="col-md-6"><label class="form-label" for="phone">Mobile number *</label><input class="form-control" id="phone" name="phone" required inputmode="tel" maxlength="20" autocomplete="tel" placeholder="For booking confirmation"></div>
+        <div class="col-md-6">
+          <label class="form-label" for="phone">Mobile number *</label>
+          <input class="form-control" id="phone" name="phone" required inputmode="tel" maxlength="20" autocomplete="tel" placeholder="For booking confirmation">
+          <div class="form-check mt-2">
+            <input class="form-check-input" id="whatsapp_updates_opt_in" name="whatsapp_updates_opt_in" type="checkbox">
+            <label class="form-check-label small" for="whatsapp_updates_opt_in">Send me booking status updates on WhatsApp</label>
+          </div>
+          <div class="form-text">Optional. If selected, enter your full number including country code. Messages are sent only when the shop updates your booking.</div>
+        </div>
         <div class="col-12">
           <fieldset>
             <legend class="form-label">How would you like to receive your order?</legend>

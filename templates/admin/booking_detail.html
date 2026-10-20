@@ -7,6 +7,18 @@
   <div class="row g-3">
     <div class="col-md-6"><div class="small text-secondary">Customer name</div><div class="h5">{{ booking.customer_name }}</div></div>
     <div class="col-md-6"><div class="small text-secondary">Mobile number</div><div class="h5">{{ booking.phone }}</div></div>
+    <div class="col-md-6">
+      <div class="small text-secondary">WhatsApp status updates</div>
+      <div>{{ 'Customer opted in' if booking.whatsapp_updates_opt_in else 'Customer did not opt in' }}</div>
+      {% if booking.whatsapp_updates_opt_in %}
+      {% if booking.whatsapp_opted_in_at %}<div class="small text-secondary">Consent recorded {{ booking.whatsapp_opted_in_at.strftime('%d %b %Y, %I:%M %p UTC') }}</div>{% endif %}
+      <form method="post" class="mt-2">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="send_whatsapp_update" value="1">
+        <button class="btn btn-outline-dark btn-sm" type="submit">Send / retry current status on WhatsApp</button>
+      </form>
+      {% endif %}
+    </div>
     <div class="col-md-6"><div class="small text-secondary">Order type</div><div>{{ 'Home delivery' if booking.fulfillment == 'delivery' else 'In-store pickup' }}</div></div>
     <div class="col-md-6"><div class="small text-secondary">Expected {{ 'delivery' if booking.fulfillment == 'delivery' else 'pickup' }}</div><div>{{ booking.pickup_at.strftime('%d %B %Y, %I:%M %p') }}</div></div>
     <div class="col-md-6"><div class="small text-secondary">Booked on</div><div>{{ booking.created_at.strftime('%d %B %Y, %I:%M %p') }}</div></div>

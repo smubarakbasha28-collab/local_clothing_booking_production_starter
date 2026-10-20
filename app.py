@@ -5,7 +5,7 @@ import json
 from io import BytesIO
 from datetime import datetime, timedelta
 from functools import wraps
-from urllib.error import URLError
+from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode, urlsplit
 from urllib.request import Request, urlopen
 from uuid import uuid4
@@ -41,6 +41,15 @@ app.config["SESSION_COOKIE_HTTPONLY"] = True
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 app.config["SESSION_COOKIE_SECURE"] = os.environ.get("COOKIE_SECURE", "false").lower() == "true"
 app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(hours=8)
+app.config["WHATSAPP_ACCESS_TOKEN"] = os.environ.get("WHATSAPP_ACCESS_TOKEN", "")
+app.config["WHATSAPP_PHONE_NUMBER_ID"] = os.environ.get("WHATSAPP_PHONE_NUMBER_ID", "")
+app.config["WHATSAPP_TEMPLATE_NAME"] = os.environ.get("WHATSAPP_TEMPLATE_NAME", "")
+app.config["WHATSAPP_TEMPLATE_LANGUAGE"] = os.environ.get(
+    "WHATSAPP_TEMPLATE_LANGUAGE", "en"
+)
+app.config["WHATSAPP_API_VERSION"] = os.environ.get(
+    "WHATSAPP_API_VERSION", "v23.0"
+)
 MAX_PRODUCT_IMAGES = 10
 app.config["MAX_CONTENT_LENGTH"] = 100 * 1024 * 1024
 IMAGE_SIGNATURES = {
@@ -173,6 +182,10 @@ class Booking(db.Model):
     booking_code = db.Column(db.String(20), unique=True, nullable=False, index=True)
     customer_name = db.Column(db.String(120), nullable=False)
     phone = db.Column(db.String(20), nullable=False)
+    whatsapp_updates_opt_in = db.Column(
+        db.Boolean, nullable=False, default=False
+    )
+    whatsapp_opted_in_at = db.Column(db.DateTime)
     pickup_at = db.Column(db.DateTime, nullable=False)
     notes = db.Column(db.String(500), default="")
     fulfillment = db.Column(db.String(20), nullable=False, default="pickup")
@@ -465,6 +478,83 @@ def driving_route_distance_km(start_latitude, start_longitude, end_latitude, end
     return distance_meters / 1000
 
 
+def send_whatsapp_status_notification(booking, shop_name):
+    required_settings = (
+        "WHATSAPP_ACCESS_TOKEN",
+        "WHATSAPP_PHONE_NUMBER_ID",
+        "WHATSAPP_TEMPLATE_NAME",
+    )
+    missing_settings = [
+        setting for setting in required_settings if not app.config[setting]
+    ]
+    if missing_settings:
+        app.logger.warning(
+            "WhatsApp status update was not sent; missing configuration: %s",
+            ", ".join(missing_settings),
+        )
+        return False
+
+    phone_number = "".join(
+        character for character in booking.phone if character.isdigit()
+    )
+    payload = {
+        "messaging_product": "whatsapp",
+        "to": phone_number,
+        "type": "template",
+        "template": {
+            "name": app.config["WHATSAPP_TEMPLATE_NAME"],
+            "language": {"code": app.config["WHATSAPP_TEMPLATE_LANGUAGE"]},
+            "components": [
+                {
+                    "type": "body",
+                    "parameters": [
+                        {"type": "text", "text": booking.customer_name},
+                        {"type": "text", "text": booking.booking_code},
+                        {"type": "text", "text": booking.status},
+                        {"type": "text", "text": shop_name},
+                    ],
+                }
+            ],
+        },
+    }
+    api_version = app.config["WHATSAPP_API_VERSION"]
+    phone_number_id = app.config["WHATSAPP_PHONE_NUMBER_ID"]
+    endpoint = (
+        f"https://graph.facebook.com/{api_version}/"
+        f"{phone_number_id}/messages"
+    )
+    message_request = Request(
+        endpoint,
+        data=json.dumps(payload).encode("utf-8"),
+        headers={
+            "Authorization": "Bearer " + app.config["WHATSAPP_ACCESS_TOKEN"],
+            "Content-Type": "application/json",
+        },
+        method="POST",
+    )
+    try:
+        with urlopen(message_request, timeout=10) as response:
+            result = json.load(response)
+    except HTTPError as error:
+        app.logger.warning(
+            "WhatsApp status update failed with HTTP status %s",
+            error.code,
+        )
+        return False
+    except (URLError, TimeoutError, json.JSONDecodeError, UnicodeDecodeError) as error:
+        app.logger.warning("WhatsApp status update failed: %s", error)
+        return False
+
+    if (
+        not isinstance(result, dict)
+        or not isinstance(result.get("messages"), list)
+        or not result["messages"]
+    ):
+        app.logger.warning("WhatsApp API returned no message confirmation")
+        return False
+    return True
+
+
 @app.post("/delivery/estimate")
 def delivery_estimate():
     if not g.shop or not g.shop.delivery_enabled or g.shop.latitude is None or g.shop.longitude is None:
@@ -659,6 +749,9 @@ def book():
 
     customer_name = request.form.get("customer_name", "").strip()
     phone = request.form.get("phone", "").strip()
+    whatsapp_updates_opt_in = (
+        request.form.get("whatsapp_updates_opt_in") == "on"
+    )
     pickup_raw = request.form.get("pickup_at", "").strip()
     notes = request.form.get("notes", "").strip()[:500]
     payment_method = request.form.get("payment_method", "shop")
@@ -717,6 +810,18 @@ def book():
     if len(digits) < 10 or len(digits) > 15:
         flash("Enter a valid mobile number (10–15 digits).", "danger")
         return redirect(url_for("book"))
+    normalized_phone = "".join(
+        character for character in phone if character not in " ()-."
+    )
+    if whatsapp_updates_opt_in and not re.fullmatch(
+        r"\+[1-9]\d{7,14}", normalized_phone
+    ):
+        flash(
+            "For WhatsApp updates, enter your number with its country code, "
+            "such as +91 98765 43210.",
+            "danger",
+        )
+        return redirect(url_for("book"))
     try:
         pickup_at = datetime.strptime(pickup_raw, "%Y-%m-%dT%H:%M")
     except ValueError:
@@ -760,6 +865,10 @@ def book():
             booking_code=f"BK{datetime.utcnow().strftime('%y%m%d')}{os.urandom(2).hex().upper()}",
             customer_name=customer_name,
             phone=phone,
+            whatsapp_updates_opt_in=whatsapp_updates_opt_in,
+            whatsapp_opted_in_at=(
+                datetime.utcnow() if whatsapp_updates_opt_in else None
+            ),
             pickup_at=pickup_at,
             notes=notes,
             fulfillment=fulfillment,
@@ -1417,6 +1526,22 @@ def admin_bookings():
 def admin_booking_detail(booking_id):
     booking = Booking.query.filter_by(id=booking_id, shop_id=g.shop.id).first_or_404()
     if request.method == "POST":
+        if request.form.get("send_whatsapp_update") == "1":
+            if not booking.whatsapp_updates_opt_in:
+                flash(
+                    "This customer did not opt in to WhatsApp updates.",
+                    "warning",
+                )
+            elif send_whatsapp_status_notification(booking, g.shop.name):
+                flash("WhatsApp status update sent.", "success")
+            else:
+                flash(
+                    "The WhatsApp update could not be sent. Check the WhatsApp "
+                    "API settings and provider logs.",
+                    "warning",
+                )
+            return redirect(url_for("admin_booking_detail", booking_id=booking.id))
+
         new_status = request.form.get("status", "")
         if new_status not in BOOKING_STATUSES:
             flash("Invalid booking status.", "danger")
@@ -1438,9 +1563,22 @@ def admin_booking_detail(booking_id):
                 ).first()
                 if product:
                     product.stock += item.quantity
+        status_changed = booking.status != new_status
         booking.status = new_status
         db.session.commit()
-        flash("Booking status updated.", "success")
+        if status_changed:
+            flash("Booking status updated.", "success")
+            if booking.whatsapp_updates_opt_in:
+                if not send_whatsapp_status_notification(booking, g.shop.name):
+                    flash(
+                        "The booking status was saved, but its WhatsApp update "
+                        "could not be sent. Check the WhatsApp API settings and "
+                        "provider logs. Use the retry button below to send it "
+                        "again after fixing the issue.",
+                        "warning",
+                    )
+        else:
+            flash("Booking status was unchanged.", "info")
         return redirect(url_for("admin_booking_detail", booking_id=booking.id))
     items_subtotal = sum(
         (item.unit_price * item.quantity for item in booking.items),
@@ -1506,6 +1644,8 @@ def init_db():
         },
         "booking": {
             "fulfillment": "VARCHAR(20) NOT NULL DEFAULT 'pickup'",
+            "whatsapp_updates_opt_in": "BOOLEAN NOT NULL DEFAULT FALSE",
+            "whatsapp_opted_in_at": "TIMESTAMP",
             "delivery_latitude": "REAL",
             "delivery_longitude": "REAL",
             "delivery_distance_km": "REAL",

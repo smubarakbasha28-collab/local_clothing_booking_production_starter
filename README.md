@@ -6,7 +6,7 @@ A Flask marketplace for independent local clothing and footwear shops. Each shop
 
 - Public product catalog, search, category filters and product details
 - Men's clothing, women's clothing, shoes, chappals/sandals and accessories
-- Customer booking with name, mobile number, expected pickup time, size/color and quantities
+- Customer booking with name, mobile number, expected pickup time, size/color and quantities; customers may opt in to WhatsApp status updates
 - Optional manual UPI payment using a shop QR code uploaded by the owner; customers can still choose to pay at the shop
 - Stock is reserved when a booking is created and returned if the owner rejects or cancels it
 - Owner dashboard, product add/edit/hide/delete, booking search and status management
@@ -18,7 +18,7 @@ A Flask marketplace for independent local clothing and footwear shops. Each shop
 
 ## Important before real use
 
-This is a starter application, not a formally audited commerce system. Test it with sample data before taking live bookings. It does not send SMS/WhatsApp notifications or process payments automatically. Online UPI transfers are made outside the site and must be verified manually by the owner; an online payment choice is not proof of payment. Do not collect more personal data than needed. Restrict the admin account, use a strong unique password, configure backups, and verify the hosting/database provider's retention and access settings.
+This is a starter application, not a formally audited commerce system. Test it with sample data before taking live bookings. WhatsApp status updates are optional and require a Meta WhatsApp Cloud API account, customer opt-in, and an approved message template; without this configuration, bookings and status changes still work normally. The app does not process payments automatically. Online UPI transfers are made outside the site and must be verified manually by the owner; an online payment choice is not proof of payment. Do not collect more personal data than needed. Restrict the admin account, use a strong unique password, configure backups, and verify the hosting/database provider's retention and access settings.
 
 Bookings reserve stock immediately. Owners can accept an order to begin preparation or reject it to release the reserved stock. The owner should cancel expired/uncollected accepted orders to release stock. Expiry automation is not included.
 
@@ -46,6 +46,8 @@ For public internet access, run this on an internet-reachable server and put an 
 ## Free demo deployment on Render
 
 The included `render.yaml` uses Render's free web-service plan, which provides a free `*.onrender.com` address and HTTPS. For data that survives app restarts, create a free Neon PostgreSQL database and a Cloudinary account for uploaded images, then provide their connection values as `DATABASE_URL` and `CLOUDINARY_URL` when Render prompts for Blueprint environment variables. The database URL should use SSL; the app supports PostgreSQL through psycopg 3. Existing local SQLite records and uploaded images are not migrated automatically.
+
+To enable customer WhatsApp status updates, configure `WHATSAPP_ACCESS_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, and `WHATSAPP_TEMPLATE_NAME` as private environment variables on the hosting service. `WHATSAPP_TEMPLATE_LANGUAGE` defaults to `en`, and `WHATSAPP_API_VERSION` defaults to `v23.0`. Create and get approval for a WhatsApp utility template with four body parameters in this order: customer name, booking code, new status, and shop name (for example: `Hi {{1}}, booking {{2}} at {{4}} is now {{3}}.`). Customers must opt in on the booking form and enter their mobile number with its country code. The site logs delivery failures and shows the owner a warning; a failed send does not undo the saved status change. Owners can retry an opted-in customer's current status update from the booking detail page.
 
 Render's free web service can sleep when idle, its local filesystem is temporary, and its free PostgreSQL product expires after 30 days. This deployment therefore uses Neon and Cloudinary for external data storage; the service may take about a minute to wake from sleep. Free-tier quotas, terms, and availability are controlled by those providers and may change. This is suitable for a demo, not a guaranteed always-on production storefront.
 
@@ -134,7 +136,7 @@ From the owner dashboard, open **Shop appearance** to upload up to 10 shop front
 2. Each owner and customer uses that shop's own link, such as `/shop/your-shop-name/`. To add another owner to the same shop, sign in and use **Create owner account** in the owner portal. A new business creates its own shop from **Create a shop owner account** on the directory home page.
 3. An owner can change their own username or password from **My account** in the owner portal; the current password is required, and new passwords must contain at least 12 characters.
 4. Add real products and enter actual available stock.
-5. Keep an owner portal page open to receive live in-page alerts for new reservations. Owners can opt in to browser notifications for alerts while another tab is active; the browser may require notification permission. The owner portal checks for new bookings every 10 seconds. Notifications are not sent when the owner portal is closed, and the app does not send SMS, email, or WhatsApp messages.
+5. Keep an owner portal page open to receive live in-page alerts for new reservations. Owners can opt in to browser notifications for alerts while another tab is active; the browser may require notification permission. The owner portal checks for new bookings every 10 seconds. These owner alerts are not sent when the owner portal is closed. Customer WhatsApp alerts require the separate Cloud API configuration described above; SMS and email notifications are not supported.
 6. Review `/admin/bookings` when customers reserve items.
 7. Open a new booking and accept or reject it. Accepting begins the order; rejecting returns its reserved stock.
 8. Move accepted orders to `Preparing`, then `Ready for Pickup`.
