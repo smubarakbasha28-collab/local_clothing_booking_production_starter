@@ -23,11 +23,13 @@
         {% else %}
         <a class="nav-link" href="{{ url_for('home') }}">Home</a>
         {% endif %}
+        {% if current_shop %}
         <a class="nav-link" href="{{ url_for('products') }}">Shop products</a>
         {% if not session.get('admin_id') %}
         <a class="nav-link" href="{{ url_for('book') }}">Reserve items</a>
         {% endif %}
-        {% if session.get('admin_id') %}
+        {% endif %}
+        {% if current_shop and session.get('admin_id') %}
         <a class="btn btn-success btn-sm" href="{{ url_for('admin_dashboard') }}">Shop dashboard</a>
         <a class="btn btn-outline-light btn-sm" href="{{ url_for('admin_owners') }}">Create owner account</a>
         <form method="post" action="{{ url_for('admin_logout') }}" class="d-flex align-items-center">
@@ -37,6 +39,7 @@
         {% else %}
         {% if current_shop %}
         <a class="nav-link" href="{{ url_for('admin_login') }}">Owner login</a>
+        <a class="nav-link" href="{{ url_for('owner_signup') }}">Create owner account</a>
         {% else %}
         <a class="nav-link" href="{{ url_for('owner_login') }}">Owner login</a>
         <a class="nav-link" href="{{ url_for('owner_signup') }}">Create owner account</a>
