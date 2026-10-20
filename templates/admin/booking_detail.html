@@ -17,9 +17,9 @@
   <div class="small text-secondary">Customer delivery location</div>
   <p class="mb-2">{{ '%.5f'|format(booking.delivery_latitude) }}, {{ '%.5f'|format(booking.delivery_longitude) }}</p>
   <a class="btn btn-outline-dark btn-sm" href="https://www.google.com/maps?q={{ booking.delivery_latitude }},{{ booking.delivery_longitude }}" target="_blank" rel="noopener">Open customer map location</a>
-  <div class="mt-3">Estimated straight-line distance: <strong>{{ '%.2f'|format(booking.delivery_distance_km) }} km</strong></div>
+  <div class="mt-3">{{ 'Estimated road route distance' if booking.delivery_distance_method == 'road' else 'Historical straight-line distance' }}: <strong>{{ '%.2f'|format(booking.delivery_distance_km) }} km</strong></div>
   <div>Estimated delivery fee: <strong>{{ booking.delivery_fee|money }}</strong></div>
-  <p class="small text-secondary mt-2 mb-0">Distance estimate is not road distance. Confirm route and final fee with the customer before dispatch.</p>
+  <p class="small text-secondary mt-2 mb-0">{{ 'Road distance is estimated from OpenStreetMap driving routes and can vary with map coverage or route availability. Confirm the route and final fee with the customer before dispatch.' if booking.delivery_distance_method == 'road' else 'This older booking was priced using straight-line distance. Confirm the actual road route and final fee with the customer before dispatch.' }}</p>
   {% endif %}
   {% if booking.notes %}<hr><div class="small text-secondary">Customer notes</div><p>{{ booking.notes }}</p>{% endif %}
   <hr><h2 class="h5">Keep these items separately</h2>

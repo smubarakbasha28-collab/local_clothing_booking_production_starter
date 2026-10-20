@@ -17,10 +17,10 @@
     {% endfor %}
     {% if booking.fulfillment == 'delivery' %}
     <hr>
-    <div class="d-flex justify-content-between gap-3 mt-2"><span>Approx. distance (straight-line)</span><strong>{{ '%.2f'|format(booking.delivery_distance_km) }} km</strong></div>
+    <div class="d-flex justify-content-between gap-3 mt-2"><span>{{ 'Estimated road route distance' if booking.delivery_distance_method == 'road' else 'Approx. straight-line distance' }}</span><strong>{{ '%.2f'|format(booking.delivery_distance_km) }} km</strong></div>
     <div class="d-flex justify-content-between gap-3 mt-2"><span>Estimated delivery fee</span><strong>{{ booking.delivery_fee|money }}</strong></div>
     <div class="d-flex justify-content-between gap-3 mt-2"><span>Estimated total due on delivery</span><strong>{{ (items_subtotal + booking.delivery_fee)|money }}</strong></div>
-    <p class="small text-secondary mt-2 mb-0">Road distance may differ; the shop will confirm the final delivery fee.</p>
+    <p class="small text-secondary mt-2 mb-0">{{ 'The road route is estimated from OpenStreetMap and can vary with route availability; the shop will confirm the delivery details.' if booking.delivery_distance_method == 'road' else 'This older request used straight-line distance; the shop will confirm the road route and final delivery fee.' }}</p>
     {% endif %}
   </div>
   {% if booking.payment and booking.payment.method == 'online' and payment_settings %}

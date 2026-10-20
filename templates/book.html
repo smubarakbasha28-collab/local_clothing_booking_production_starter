@@ -7,7 +7,8 @@
     <p class="text-secondary mb-4">Reserve items to pick up at the shop, or request delivery and pay cash when it arrives.</p>
     <form method="post" class="form-panel"
           data-shop-latitude="{{ current_shop.latitude if current_shop.latitude is not none else '' }}"
-          data-shop-longitude="{{ current_shop.longitude if current_shop.longitude is not none else '' }}">
+          data-shop-longitude="{{ current_shop.longitude if current_shop.longitude is not none else '' }}"
+          data-route-url="{{ url_for('delivery_estimate') }}">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <h2 class="h5 mb-3">Your details</h2>
       <div class="row g-3">
@@ -42,7 +43,7 @@
             <button class="btn btn-outline-dark btn-sm" id="share-delivery-location" type="button">Share current location</button>
             <div class="small mt-2" id="delivery-location-status" aria-live="polite">Location not shared yet.</div>
             <div class="small fw-semibold mt-2" id="delivery-fee-estimate" aria-live="polite"></div>
-            <div class="form-text">Estimated at ₹10 per kilometre, rounded up, using straight-line distance. The actual road distance and final fee may differ.</div>
+            <div class="form-text">We calculate the driving route using OpenStreetMap road data. The fee is ₹5 per road kilometre, rounded up. Your location is sent to the routing service to calculate the route; road coverage and routes may vary.</div>
           </div>
         </div>
         <div class="col-md-6">
@@ -143,6 +144,7 @@
   const orderButton = document.getElementById("submit-order");
   const pickupTimeLabel = document.getElementById("pickup-time-label");
   const pickupTimeHelp = document.getElementById("pickup-time-help");
+  let roadRouteReady = false;
   const isDelivery = () => deliveryRadio?.checked === true;
 
   const updatePaymentQr = () => {
@@ -172,6 +174,37 @@
   };
   pickupRadio?.addEventListener("change", updateFulfillment);
   deliveryRadio?.addEventListener("change", updateFulfillment);
+  const calculateRouteEstimate = async () => {
+    roadRouteReady = false;
+    feeEstimate.textContent = "";
+    locationStatus.textContent = "Calculating driving route…";
+    shareLocationButton.disabled = true;
+    const token = bookingForm.querySelector('input[name="csrf_token"]').value;
+    const body = new URLSearchParams({
+      csrf_token: token,
+      latitude: locationLatitude.value,
+      longitude: locationLongitude.value,
+    });
+    try {
+      const response = await fetch(bookingForm.dataset.routeUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body,
+        credentials: "same-origin",
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(result.error || "Could not calculate the driving route. Please try again.");
+      }
+      roadRouteReady = true;
+      locationStatus.textContent = "Driving route calculated.";
+      feeEstimate.textContent = `Road route: ${result.distance_km.toFixed(2)} km · ${result.billable_km} km charged · delivery fee ₹${result.delivery_fee}.`;
+    } catch (error) {
+      locationStatus.textContent = error.message || "Could not calculate the driving route. Please try again.";
+    } finally {
+      shareLocationButton.disabled = false;
+    }
+  };
   shareLocationButton?.addEventListener("click", () => {
     if (!navigator.geolocation) {
       locationStatus.textContent = "This browser does not support location sharing.";
@@ -184,21 +217,7 @@
         const longitude = position.coords.longitude;
         locationLatitude.value = latitude.toFixed(7);
         locationLongitude.value = longitude.toFixed(7);
-        locationStatus.textContent = `Location shared (${latitude.toFixed(5)}, ${longitude.toFixed(5)}).`;
-        const shopLatitude = Number(bookingForm.dataset.shopLatitude);
-        const shopLongitude = Number(bookingForm.dataset.shopLongitude);
-        const radians = (degrees) => degrees * Math.PI / 180;
-        const latDelta = radians(latitude - shopLatitude);
-        const lonDelta = radians(longitude - shopLongitude);
-        const startLat = radians(shopLatitude);
-        const endLat = radians(latitude);
-        const haversine = Math.min(1, Math.max(0,
-          Math.sin(latDelta / 2) ** 2
-          + Math.cos(startLat) * Math.cos(endLat) * Math.sin(lonDelta / 2) ** 2
-        ));
-        const distance = 6371.0088 * 2 * Math.atan2(Math.sqrt(haversine), Math.sqrt(1 - haversine));
-        const fee = Math.ceil(distance - 1e-9) * 10;
-        feeEstimate.textContent = `About ${distance.toFixed(2)} km straight-line · estimated delivery fee ₹${fee}.`;
+        calculateRouteEstimate();
       },
       (error) => {
         locationStatus.textContent = error.code === error.PERMISSION_DENIED
@@ -206,15 +225,20 @@
           : "Could not get your location. Please try again.";
         locationLatitude.value = "";
         locationLongitude.value = "";
+        roadRouteReady = false;
         feeEstimate.textContent = "";
       },
       { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 }
     );
   });
   bookingForm?.addEventListener("submit", (event) => {
-    if (isDelivery() && (!locationLatitude.value || !locationLongitude.value)) {
+    if (isDelivery() && (!locationLatitude.value || !locationLongitude.value || !roadRouteReady)) {
       event.preventDefault();
-      locationStatus.textContent = "Share your current location before placing a delivery order.";
+      if (!locationLatitude.value || !locationLongitude.value) {
+        locationStatus.textContent = "Share your current location before placing a delivery order.";
+      } else {
+        locationStatus.textContent = "Wait for the driving route estimate before placing the order.";
+      }
       shareLocationButton.focus();
     }
   });

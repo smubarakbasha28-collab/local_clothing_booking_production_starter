@@ -1,10 +1,13 @@
 import os
 import re
 import math
+import json
 from io import BytesIO
 from datetime import datetime, timedelta
 from functools import wraps
-from urllib.parse import urlsplit
+from urllib.error import URLError
+from urllib.parse import urlencode, urlsplit
+from urllib.request import Request, urlopen
 from uuid import uuid4
 
 import click
@@ -54,6 +57,7 @@ csrf = CSRFProtect(app)
 BOOKING_STATUSES = [
     "New", "Accepted", "Preparing", "Ready for Pickup", "Collected", "Rejected", "Cancelled",
 ]
+DELIVERY_FEE_PER_KM = 5
 CATEGORIES = ["Men's Clothing", "Women's Clothing", "Shoes", "Chappals & Sandals", "Accessories", "Other"]
 SIZE_OPTIONS = [
     "XXS", "XS", "S", "M", "L", "XL", "XXL", "3XL", "4XL", "5XL",
@@ -175,6 +179,9 @@ class Booking(db.Model):
     delivery_latitude = db.Column(db.Float)
     delivery_longitude = db.Column(db.Float)
     delivery_distance_km = db.Column(db.Float)
+    delivery_distance_method = db.Column(
+        db.String(20), nullable=False, default="straight_line"
+    )
     delivery_fee = db.Column(db.Integer, nullable=False, default=0)
     status = db.Column(db.String(40), nullable=False, default="New")
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
@@ -406,20 +413,84 @@ def coordinates_are_valid(latitude, longitude):
     )
 
 
-def distance_in_kilometers(start_latitude, start_longitude, end_latitude, end_longitude):
-    earth_radius_km = 6371.0088
-    latitude_delta = math.radians(end_latitude - start_latitude)
-    longitude_delta = math.radians(end_longitude - start_longitude)
-    start_latitude = math.radians(start_latitude)
-    end_latitude = math.radians(end_latitude)
-    haversine = (
-        math.sin(latitude_delta / 2) ** 2
-        + math.cos(start_latitude)
-        * math.cos(end_latitude)
-        * math.sin(longitude_delta / 2) ** 2
+class DeliveryRouteError(Exception):
+    pass
+
+
+def driving_route_distance_km(start_latitude, start_longitude, end_latitude, end_longitude):
+    coordinates = (
+        f"{start_longitude:.7f},{start_latitude:.7f};"
+        f"{end_longitude:.7f},{end_latitude:.7f}"
     )
-    haversine = min(1, max(0, haversine))
-    return earth_radius_km * 2 * math.atan2(math.sqrt(haversine), math.sqrt(1 - haversine))
+    query = urlencode({"overview": "false", "alternatives": "false", "steps": "false"})
+    request = Request(
+        f"https://router.project-osrm.org/route/v1/driving/{coordinates}?{query}",
+        headers={"User-Agent": "LocalFashionBooking/1.0"},
+    )
+    try:
+        with urlopen(request, timeout=10) as response:
+            result = json.loads(response.read())
+    except (URLError, TimeoutError, json.JSONDecodeError, UnicodeDecodeError) as error:
+        app.logger.warning("Unable to calculate driving route: %s", error)
+        raise DeliveryRouteError(
+            "Could not calculate a road route right now. Please try again."
+        ) from error
+
+    if (
+        not isinstance(result, dict)
+        or result.get("code") != "Ok"
+        or not result.get("routes")
+    ):
+        result_code = (
+            result.get("code", "unknown")
+            if isinstance(result, dict)
+            else "invalid response"
+        )
+        app.logger.warning("Routing service returned no road route: %s", result_code)
+        raise DeliveryRouteError(
+            "No driving route was found for this location. Check the map pin or choose pickup."
+        )
+    try:
+        distance_meters = float(result["routes"][0]["distance"])
+    except (KeyError, TypeError, ValueError) as error:
+        app.logger.error("Routing service returned an invalid route distance")
+        raise DeliveryRouteError(
+            "Could not calculate a road route right now. Please try again."
+        ) from error
+    if not math.isfinite(distance_meters) or distance_meters < 0:
+        app.logger.error("Routing service returned an invalid route distance")
+        raise DeliveryRouteError(
+            "Could not calculate a road route right now. Please try again."
+        )
+    return distance_meters / 1000
+
+
+@app.post("/delivery/estimate")
+def delivery_estimate():
+    if not g.shop or not g.shop.delivery_enabled or g.shop.latitude is None or g.shop.longitude is None:
+        return jsonify(error="Delivery is not enabled for this shop."), 400
+    try:
+        customer_latitude = float(request.form.get("latitude", ""))
+        customer_longitude = float(request.form.get("longitude", ""))
+    except (TypeError, ValueError):
+        return jsonify(error="Share a valid delivery location first."), 400
+    if not coordinates_are_valid(customer_latitude, customer_longitude):
+        return jsonify(error="Share a valid delivery location first."), 400
+    try:
+        distance_km = driving_route_distance_km(
+            g.shop.latitude,
+            g.shop.longitude,
+            customer_latitude,
+            customer_longitude,
+        )
+    except DeliveryRouteError as error:
+        return jsonify(error=str(error)), 503
+    billable_km = math.ceil(distance_km - 1e-9)
+    return jsonify(
+        distance_km=round(distance_km, 2),
+        billable_km=billable_km,
+        delivery_fee=billable_km * DELIVERY_FEE_PER_KM,
+    )
 
 
 @app.get("/")
@@ -618,13 +689,19 @@ def book():
         if not coordinates_are_valid(delivery_latitude, delivery_longitude):
             flash("The shared delivery location is not valid. Please share it again.", "danger")
             return redirect(url_for("book"))
-        delivery_distance_km = distance_in_kilometers(
-            g.shop.latitude,
-            g.shop.longitude,
-            delivery_latitude,
-            delivery_longitude,
+        try:
+            delivery_distance_km = driving_route_distance_km(
+                g.shop.latitude,
+                g.shop.longitude,
+                delivery_latitude,
+                delivery_longitude,
+            )
+        except DeliveryRouteError as error:
+            flash(str(error), "danger")
+            return redirect(url_for("book"))
+        delivery_fee = (
+            math.ceil(delivery_distance_km - 1e-9) * DELIVERY_FEE_PER_KM
         )
-        delivery_fee = math.ceil(delivery_distance_km - 1e-9) * 10
         if payment_method != "cod":
             flash("Delivery orders are paid in cash on delivery.", "danger")
             return redirect(url_for("book"))
@@ -689,6 +766,7 @@ def book():
             delivery_latitude=delivery_latitude,
             delivery_longitude=delivery_longitude,
             delivery_distance_km=delivery_distance_km,
+            delivery_distance_method="road",
             delivery_fee=delivery_fee,
             status="New",
         )
@@ -1425,6 +1503,9 @@ def init_db():
             "delivery_latitude": "REAL",
             "delivery_longitude": "REAL",
             "delivery_distance_km": "REAL",
+            "delivery_distance_method": (
+                "VARCHAR(20) NOT NULL DEFAULT 'straight_line'"
+            ),
             "delivery_fee": "INTEGER NOT NULL DEFAULT 0",
         },
     }
