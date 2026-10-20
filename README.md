@@ -12,7 +12,7 @@ A Flask marketplace for independent local clothing and footwear shops. Each shop
 - Owner dashboard, product add/edit/hide/delete, booking search and status management
 - Boutique typography using DM Sans and Playfair Display, with animated product flip cards on desktop and touch controls on mobile
 - Booking statuses: New (awaiting owner decision), Accepted, Preparing, Ready for Pickup, Collected, Rejected, Cancelled
-- Public booking lookup requires both booking code and the phone number
+- Public booking status lookup is available from a separate navigation button and requires both booking code and phone number
 - CSRF protection, password hashing, session cookie settings, input validation and health endpoint
 - PostgreSQL support for production and SQLite for local development
 

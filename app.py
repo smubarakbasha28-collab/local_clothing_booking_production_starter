@@ -909,19 +909,58 @@ def book():
     )
 
 
-@app.get("/booking/<booking_code>")
-def booking_lookup(booking_code):
+@app.get("/booking-status")
+def booking_status_lookup():
     if not g.shop:
         return redirect(url_for("home"))
-    booking = Booking.query.filter_by(booking_code=booking_code.upper(), shop_id=g.shop.id).first_or_404()
-    # Public lookup requires both the booking code and phone number.
+    booking_code = request.args.get("booking_code", "").strip().upper()
+    if not booking_code:
+        return render_template(
+            "booking_lookup.html",
+            booking=None,
+            booking_code="",
+        )
+    booking = Booking.query.filter_by(
+        booking_code=booking_code,
+        shop_id=g.shop.id,
+    ).first()
+    if not booking:
+        flash("We could not find that booking. Check the booking number and try again.", "warning")
+        return render_template(
+            "booking_lookup.html",
+            booking=None,
+            booking_code=booking_code,
+        )
     phone = request.args.get("phone", "").strip()
     if not phone:
-        return render_template("booking_lookup.html", booking=None, booking_code=booking_code.upper())
+        return render_template(
+            "booking_lookup.html",
+            booking=None,
+            booking_code=booking_code,
+        )
     if "".join(ch for ch in phone if ch.isdigit()) != "".join(ch for ch in booking.phone if ch.isdigit()):
         flash("Booking code and mobile number did not match.", "danger")
-        return render_template("booking_lookup.html", booking=None, booking_code=booking_code.upper())
-    return render_template("booking_lookup.html", booking=booking, booking_code=booking_code.upper())
+        return render_template(
+            "booking_lookup.html",
+            booking=None,
+            booking_code=booking_code,
+        )
+    return render_template(
+        "booking_lookup.html",
+        booking=booking,
+        booking_code=booking_code,
+    )
+
+
+@app.get("/booking/<booking_code>")
+def booking_lookup(booking_code):
+    return redirect(
+        url_for(
+            "booking_status_lookup",
+            booking_code=booking_code,
+            phone=request.args.get("phone", ""),
+        )
+    )
 
 
 @app.get("/admin/login")

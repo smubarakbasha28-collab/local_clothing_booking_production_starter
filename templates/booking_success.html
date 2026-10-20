@@ -31,7 +31,7 @@
   </div>
   {% endif %}
   <p class="small text-secondary">Save the booking number. To check status, use the booking number and the same mobile number.</p>
-  <a class="btn btn-dark" href="{{ url_for('booking_lookup', booking_code=booking.booking_code) }}">Check booking status</a>
+  <a class="btn btn-dark" href="{{ url_for('booking_status_lookup', booking_code=booking.booking_code) }}">Check booking status</a>
   <a class="btn btn-outline-dark ms-2" href="{{ url_for('products') }}">Continue browsing</a>
 </div>
 {% endblock %}

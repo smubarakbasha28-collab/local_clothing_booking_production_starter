@@ -3,9 +3,12 @@
 {% block content %}
 <div class="row justify-content-center"><div class="col-lg-7">
   <span class="eyebrow">BOOKING STATUS</span><h1 class="section-title">Check your reservation</h1>
-  <form class="form-panel mb-4" method="get">
+  <p class="text-secondary">Enter the booking number from your confirmation and the mobile number used when you placed the booking.</p>
+  <form class="form-panel mb-4" method="get" action="{{ url_for('booking_status_lookup') }}">
+    <label class="form-label" for="booking_code">Booking number</label>
+    <input class="form-control mb-3" name="booking_code" id="booking_code" value="{{ booking_code }}" required maxlength="20" autocomplete="off" placeholder="For example, BK260101ABCD">
     <label class="form-label" for="phone">Mobile number used for booking</label>
-    <input class="form-control mb-3" name="phone" id="phone" required inputmode="tel" placeholder="Enter your mobile number">
+    <input class="form-control mb-3" name="phone" id="phone" required inputmode="tel" autocomplete="tel" placeholder="Enter your mobile number">
     <button class="btn btn-dark">Find booking</button>
   </form>
   {% if booking %}
