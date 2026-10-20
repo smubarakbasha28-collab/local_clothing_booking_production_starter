@@ -134,7 +134,7 @@ From the owner dashboard, open **Shop appearance** to upload up to 10 shop front
 2. Each owner and customer uses that shop's own link, such as `/shop/your-shop-name/`. To add another owner to the same shop, sign in and use **Create owner account** in the owner portal. A new business creates its own shop from **Create a shop owner account** on the directory home page.
 3. An owner can change their own username or password from **My account** in the owner portal; the current password is required, and new passwords must contain at least 12 characters.
 4. Add real products and enter actual available stock.
-5. Keep an owner portal page open to receive live in-page alerts for new reservations, including customer contact, selected items, quantities, sizes, colors and payment preference. The owner portal checks for new bookings every 10 seconds; it does not send SMS, email, or alerts when the portal is closed.
+5. Keep an owner portal page open to receive live in-page alerts for new reservations. Owners can opt in to browser notifications for alerts while another tab is active; the browser may require notification permission. The owner portal checks for new bookings every 10 seconds. Notifications are not sent when the owner portal is closed, and the app does not send SMS, email, or WhatsApp messages.
 6. Review `/admin/bookings` when customers reserve items.
 7. Open a new booking and accept or reject it. Accepting begins the order; rejecting returns its reserved stock.
 8. Move accepted orders to `Preparing`, then `Ready for Pickup`.

@@ -5,7 +5,10 @@
            data-after-id="{{ latest_booking_id }}"
            data-notifications-url="{{ url_for('admin_booking_notifications') }}"
            aria-live="polite" aria-atomic="false">
-    <span class="small text-secondary" id="admin-booking-notification-status">Watching for new bookings while this owner page is open.</span>
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+      <span class="small text-secondary" id="admin-booking-notification-status">New bookings appear here while the owner portal is open.</span>
+      <button class="btn btn-outline-dark btn-sm" id="enable-booking-notifications" type="button" hidden>Enable browser notifications</button>
+    </div>
     <div id="admin-booking-notification-list"></div>
   </section>
   <aside class="admin-sidebar">
@@ -30,6 +33,38 @@
     let lastBookingId = Number(bookingNotifications.dataset.afterId);
     const notificationList = document.getElementById("admin-booking-notification-list");
     const notificationStatus = document.getElementById("admin-booking-notification-status");
+    const enableNotificationsButton = document.getElementById("enable-booking-notifications");
+    const browserNotificationsAvailable = "Notification" in window;
+    const updateNotificationControls = () => {
+      if (!browserNotificationsAvailable) {
+        enableNotificationsButton.hidden = true;
+        notificationStatus.textContent = "New bookings appear here while the owner portal is open. This browser does not support desktop notifications.";
+      } else if (Notification.permission === "granted") {
+        enableNotificationsButton.hidden = true;
+        notificationStatus.textContent = "Watching for new bookings. Browser notifications are enabled while this owner portal is open.";
+      } else if (Notification.permission === "denied") {
+        enableNotificationsButton.hidden = true;
+        notificationStatus.textContent = "New bookings appear here while the owner portal is open. Browser notifications are blocked in this browser's site settings.";
+      } else {
+        enableNotificationsButton.hidden = false;
+        notificationStatus.textContent = "New bookings appear here while the owner portal is open. Enable browser notifications for alerts when another tab is active.";
+      }
+    };
+    enableNotificationsButton.addEventListener("click", async () => {
+      try {
+        const permission = await Notification.requestPermission();
+        updateNotificationControls();
+        if (permission === "granted") {
+          new Notification("Order notifications enabled", {
+            body: "You will be alerted to new bookings while the owner portal is open.",
+          });
+        }
+      } catch (error) {
+        notificationStatus.textContent = "Could not enable browser notifications. Check this browser's site permissions.";
+        console.error("Browser notification permission failed:", error);
+      }
+    });
+    updateNotificationControls();
     const pollBookings = async () => {
       try {
         const response = await fetch(
@@ -80,13 +115,26 @@
 
           notificationList.prepend(alert);
           lastBookingId = Math.max(lastBookingId, booking.id);
+          if (browserNotificationsAvailable && Notification.permission === "granted") {
+            const notification = new Notification(
+              booking.fulfillment === "delivery" ? "New delivery order" : "New reservation",
+              {
+                body: `${booking.booking_code} · ${booking.customer_name}`,
+                tag: `booking-${booking.id}`,
+              }
+            );
+            notification.addEventListener("click", () => {
+              window.focus();
+              window.location.href = booking.url;
+            });
+          }
         });
-        notificationStatus.textContent = "Watching for new bookings while this owner page is open.";
       } catch (error) {
         notificationStatus.textContent = "Could not check for new bookings. This page will try again.";
         console.error("Booking notification check failed:", error);
       }
     };
+    pollBookings();
     window.setInterval(pollBookings, 10000);
   }
 </script>
