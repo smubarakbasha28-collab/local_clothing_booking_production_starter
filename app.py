@@ -67,6 +67,7 @@ BOOKING_STATUSES = [
     "New", "Accepted", "Preparing", "Ready for Pickup", "Collected", "Rejected", "Cancelled",
 ]
 DELIVERY_FEE_PER_KM = 5
+LOW_STOCK_THRESHOLD = 5
 CATEGORIES = ["Men's Clothing", "Women's Clothing", "Shoes", "Chappals & Sandals", "Accessories", "Other"]
 SIZE_OPTIONS = [
     "XXS", "XS", "S", "M", "L", "XL", "XXL", "3XL", "4XL", "5XL",
@@ -1052,12 +1053,30 @@ def admin_dashboard():
         for status in BOOKING_STATUSES
     }
     product_count = Product.query.filter_by(shop_id=g.shop.id).count()
+    low_stock_count = Product.query.filter(
+        Product.shop_id == g.shop.id,
+        Product.active.is_(True),
+        Product.stock <= LOW_STOCK_THRESHOLD,
+    ).count()
+    low_stock_products = (
+        Product.query.filter(
+            Product.shop_id == g.shop.id,
+            Product.active.is_(True),
+            Product.stock <= LOW_STOCK_THRESHOLD,
+        )
+        .order_by(Product.stock.asc(), Product.name.asc())
+        .limit(10)
+        .all()
+    )
     bookings = Booking.query.filter_by(shop_id=g.shop.id).order_by(Booking.created_at.desc()).limit(50).all()
     return render_template(
         "admin/dashboard.html",
         counts=counts,
         bookings=bookings,
         product_count=product_count,
+        low_stock_count=low_stock_count,
+        low_stock_products=low_stock_products,
+        low_stock_threshold=LOW_STOCK_THRESHOLD,
     )
 
 
@@ -1272,10 +1291,16 @@ def admin_products():
         else None
     )
     products_list = Product.query.filter_by(shop_id=g.shop.id).order_by(Product.created_at.desc()).all()
+    low_stock_products = [
+        product for product in products_list
+        if product.active and product.stock <= LOW_STOCK_THRESHOLD
+    ]
     edit_product_images = product_image_paths(edit_product) if edit_product else []
     return render_template(
         "admin/products.html",
         products=products_list,
+        low_stock_products=low_stock_products,
+        low_stock_threshold=LOW_STOCK_THRESHOLD,
         edit_product=edit_product,
         edit_product_images=edit_product_images,
         size_options=SIZE_OPTIONS,

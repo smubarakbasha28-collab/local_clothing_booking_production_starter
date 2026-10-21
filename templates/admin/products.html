@@ -67,9 +67,18 @@
     </div>
   </form>
 </div>
+{% if low_stock_products %}
+<section class="low-stock-panel mb-4" aria-labelledby="inventory-low-stock-heading">
+  <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+    <h2 class="h5 mb-0" id="inventory-low-stock-heading">Low-stock alerts</h2>
+    <span class="low-stock-count">{{ low_stock_products|length }} products</span>
+  </div>
+  <p class="small text-secondary mb-0">Active products with {{ low_stock_threshold }} or fewer items are highlighted below.</p>
+</section>
+{% endif %}
 <h2 class="h5 mb-3">All products</h2>
 <div class="table-responsive admin-table"><table class="table align-middle"><thead><tr><th>Product</th><th>Category</th><th>Price</th><th>Stock</th><th>Visibility</th><th>Actions</th></tr></thead><tbody>
-{% for p in products %}<tr><td><strong>{{ p.name }}</strong><div class="small text-secondary">{{ p.sizes or 'No sizes' }} · {{ p.colors or 'No colors' }}</div></td><td>{{ p.category }}</td><td>{{ p.price|money }}</td><td>{{ p.stock }}</td><td>{{ 'Visible' if p.active else 'Hidden' }}</td><td><div class="d-flex flex-wrap gap-2"><a href="{{ url_for('admin_products', edit=p.id) }}">Edit</a><form method="post" action="{{ url_for('toggle_product', product_id=p.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-link btn-sm p-0">{{ 'Hide' if p.active else 'Show' }}</button></form><form method="post" action="{{ url_for('delete_product', product_id=p.id) }}" onsubmit="return confirm('Delete or hide this product?')"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-link btn-sm text-danger p-0">Delete</button></form></div></td></tr>
+{% for p in products %}<tr class="{{ 'low-stock-row' if p.active and p.stock <= low_stock_threshold else '' }}"><td><strong>{{ p.name }}</strong><div class="small text-secondary">{{ p.sizes or 'No sizes' }} · {{ p.colors or 'No colors' }}</div></td><td>{{ p.category }}</td><td>{{ p.price|money }}</td><td>{% if p.active and p.stock <= low_stock_threshold %}<span class="stock-level {{ 'out-of-stock' if p.stock == 0 else '' }}">{{ 'Out of stock' if p.stock == 0 else p.stock ~ ' left' }}</span>{% else %}{{ p.stock }}{% endif %}</td><td>{{ 'Visible' if p.active else 'Hidden' }}</td><td><div class="d-flex flex-wrap gap-2"><a href="{{ url_for('admin_products', edit=p.id) }}">Edit</a><form method="post" action="{{ url_for('toggle_product', product_id=p.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-link btn-sm p-0">{{ 'Hide' if p.active else 'Show' }}</button></form><form method="post" action="{{ url_for('delete_product', product_id=p.id) }}" onsubmit="return confirm('Delete or hide this product?')"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-link btn-sm text-danger p-0">Delete</button></form></div></td></tr>
 {% else %}<tr><td colspan="6" class="text-secondary">No products yet. Add the first product above.</td></tr>{% endfor %}
 </tbody></table></div>
 {% endblock %}

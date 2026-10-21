@@ -10,6 +10,7 @@ A Flask marketplace for independent local clothing and footwear shops. Each shop
 - Optional manual UPI payment using a shop QR code uploaded by the owner; customers can still choose to pay at the shop
 - Stock is reserved when a booking is created and returned if the owner rejects or cancels it
 - Owner dashboard, product add/edit/hide/delete, booking search and status management
+- Owner dashboard low-stock alerts for active products with 5 or fewer units remaining
 - Boutique typography using DM Sans and Playfair Display, with animated product flip cards on desktop and touch controls on mobile
 - Booking statuses: New (awaiting owner decision), Accepted, Preparing, Ready for Pickup, Collected, Rejected, Cancelled
 - Public booking status lookup is available from a separate navigation button and requires both booking code and phone number
