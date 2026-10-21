@@ -1555,6 +1555,41 @@ main.container{
 @media(prefers-reduced-motion:reduce){
   .product-card,.category-tile,.stat-card,.admin-sidebar>a{transition:none!important}
 }
+:root{
+  --font-body:"Manrope",ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --font-display:"Cormorant Garamond",Georgia,"Times New Roman",serif;
+}
+body{
+  font-family:var(--font-body);
+  font-size:.96rem;
+  letter-spacing:0;
+  line-height:1.65;
+}
+h1,h2,h3,.section-title,.navbar-brand{
+  font-family:var(--font-display);
+  font-weight:600;
+  letter-spacing:-.035em;
+}
+.hero .display-4,.hero .display-5{
+  font-size:clamp(3.4rem,7vw,6.1rem);
+  font-weight:600!important;
+  letter-spacing:-.065em;
+  line-height:.9;
+}
+.section-title{font-weight:600}
+.navbar-brand{font-size:1.5rem}
+.btn,.form-label,.form-control,.form-select,.table,.nav-action,.nav-action-button{
+  font-family:var(--font-body);
+}
+.auth-story h1{
+  font-family:var(--font-display);
+  font-size:clamp(3.2rem,5.2vw,5rem);
+  font-weight:600;
+}
+@media(max-width:767.98px){
+  .hero .display-4,.hero .display-5{font-size:clamp(3rem,12vw,4.4rem)}
+  .auth-story h1{font-size:3.2rem}
+}
 .low-stock-panel{
   padding:1.25rem;
   border:1px solid #e5c7ad;
