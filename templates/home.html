@@ -1,24 +1,25 @@
 {% extends "base.html" %}
 {% block title %}{{ shop_name }} | Reserve in store{% endblock %}
 {% block content %}
-<section class="hero rounded-4 p-4 p-lg-5 mb-5">
-  <div class="row align-items-center g-4">
-    <div class="col-lg-7">
-      <span class="eyebrow">YOUR NEIGHBOURHOOD FASHION STORE</span>
-      <h1 class="display-4 fw-bold mt-3">Find your style.<br><span class="accent-text">Order your way.</span></h1>
-      <p class="lead mt-3 text-secondary">Browse clothing, shoes and chappals. Reserve items for pickup{% if current_shop.delivery_enabled and current_shop.latitude is not none and current_shop.longitude is not none %}, or request home delivery with cash on delivery{% endif %}.</p>
-      <div class="d-flex flex-wrap gap-2 mt-4">
-        <a class="btn btn-dark btn-lg" href="{{ url_for('products') }}">Browse products</a>
-        <a class="btn btn-outline-dark btn-lg" href="{{ url_for('book') }}">Order or reserve items</a>
+<div class="boutique-home">
+  <div class="launch-topline">
+    <span>INDEPENDENT STYLE · RIGHT AROUND THE CORNER</span>
+    <span>Reserve online · collect in store</span>
+  </div>
+  <section class="launch-hero">
+    <div class="launch-copy">
+      <span class="launch-kicker">THE LOCAL EDIT · {{ shop_name }}</span>
+      <h1>Good style.<br><span>Closer to home.</span></h1>
+      <p>Thoughtful finds from your neighbourhood fashion store. Browse the collection and reserve what feels like you.</p>
+      <div class="launch-actions">
+        <a class="btn btn-dark btn-lg" href="{{ url_for('products') }}">Explore the collection <span aria-hidden="true">↗</span></a>
+        <a class="launch-text-link" href="{{ url_for('book') }}">Reserve an item</a>
       </div>
-      <p class="mt-3 mb-0"><a href="{{ url_for('admin_login', next=url_for('admin_owners')) }}">Shop owner sign in</a><span class="small text-secondary"> — sign in to manage this shop.</span></p>
-      {% if not current_shop.delivery_enabled or current_shop.latitude is none or current_shop.longitude is none %}
-      <p class="small text-secondary mt-3 mb-0">In-store pickup reservations are available.</p>
-      {% endif %}
+      <p class="launch-owner-link"><a href="{{ url_for('admin_login', next=url_for('admin_owners')) }}">Shop owner sign in</a></p>
     </div>
-    <div class="col-lg-5">
+    <div class="launch-visual">
       {% if shop_images %}
-      <div class="shop-hero-carousel" data-interval="5000" aria-label="{{ shop_name }} photos">
+      <div class="shop-hero-carousel launch-carousel" data-interval="5000" aria-label="{{ shop_name }} photos">
         {% for image in shop_images %}
         <img class="hero-shop-image {{ 'active' if loop.first else '' }}"
              src="{{ image }}" alt="{{ shop_name }} photo {{ loop.index }}"
@@ -39,42 +40,53 @@
         {% endif %}
       </div>
       {% else %}
-      <div class="hero-art">
-        <div class="art-card art-one"><span>NEW SEASON</span><strong>Everyday<br>essentials</strong></div>
-        <div class="art-card art-two"><span>STYLE YOUR WAY</span><strong>Clothes &<br>footwear</strong></div>
-        <div class="art-sticker">SHOP<br>LOCAL</div>
+      <div class="launch-art" aria-label="A new collection from {{ shop_name }}">
+        <span class="launch-art-caption">A LITTLE SOMETHING NEW</span>
+        <div class="launch-art-shape shape-one"></div>
+        <div class="launch-art-shape shape-two"></div>
+        <div class="launch-art-label"><span>YOUR STYLE</span><strong>Starts<br>around here.</strong></div>
+        <span class="launch-art-index">01 — 04</span>
       </div>
       {% endif %}
     </div>
+  </section>
+  <div class="launch-benefits" aria-label="Shopping highlights">
+    <div><span class="benefit-number">01</span><span>Discover local collections</span></div>
+    <div><span class="benefit-number">02</span><span>Reserve in a few taps</span></div>
+    <div><span class="benefit-number">03</span><span>Collect on your schedule</span></div>
   </div>
-</section>
-<section class="mb-5">
-  <div class="d-flex justify-content-between align-items-end mb-3"><div><span class="eyebrow">EXPLORE</span><h2 class="section-title mb-0">Shop by category</h2></div><a href="{{ url_for('products') }}" class="text-dark">View all</a></div>
-  <div class="row g-3">
-    {% for category in categories %}
-    <div class="col-6 col-md-4 col-lg">
-      <a class="category-tile {{ 'has-image' if category.image else '' }}" href="{{ url_for('products', category=category.name) }}">
-        {% if category.image %}
-        <img class="category-tile-image" src="{{ category.image }}" alt="{{ category.name }} collection" loading="lazy">
-        {% else %}
-        <span class="category-tile-placeholder" aria-hidden="true">{{ category.name }}</span>
-        {% endif %}
-        <span class="category-tile-label">{{ category.name }}</span><span class="category-arrow">↗</span>
-      </a>
+  <section class="launch-section" id="collections">
+    <div class="launch-section-heading">
+      <div><span class="launch-kicker">A GOOD PLACE TO START</span><h2>Find your kind of thing.</h2></div>
+      <a class="launch-text-link" href="{{ url_for('products') }}">View everything <span aria-hidden="true">↗</span></a>
     </div>
+    <div class="launch-category-grid">
+      {% for category in categories %}
+      <a class="launch-category {{ 'has-image' if category.image else '' }}" href="{{ url_for('products', category=category.name) }}">
+        {% if category.image %}
+        <img src="{{ category.image }}" alt="{{ category.name }} collection" loading="lazy">
+        {% else %}
+        <span class="launch-category-art" aria-hidden="true"><span>{{ '%02d'|format(loop.index) }}</span></span>
+        {% endif %}
+        <span class="launch-category-name">{{ category.name }}</span><span class="launch-category-arrow" aria-hidden="true">↗</span>
+      </a>
+      {% endfor %}
+    </div>
+  </section>
+  <section class="launch-featured" id="new-arrivals">
+    <div class="launch-section-heading">
+      <div><span class="launch-kicker">FRESH FROM THE SHOP</span><h2>Worth a closer look.</h2></div>
+      <a class="launch-text-link" href="{{ url_for('products') }}">Shop all products <span aria-hidden="true">↗</span></a>
+    </div>
+    <div class="row g-3 g-lg-4">
+    {% for product in featured %}
+      <div class="col-6 col-md-4 col-lg-3">{% include "_product_card.html" %}</div>
+    {% else %}
+      <div class="col-12"><div class="empty-state">The new collection is taking shape. Check back soon.</div></div>
     {% endfor %}
-  </div>
-</section>
-<section>
-  <div class="d-flex justify-content-between align-items-end mb-3"><div><span class="eyebrow">JUST ADDED</span><h2 class="section-title mb-0">Featured products</h2></div><a href="{{ url_for('products') }}" class="text-dark">See all products</a></div>
-  <div class="row g-3 g-lg-4">
-  {% for product in featured %}
-    <div class="col-6 col-md-4 col-lg-3">{% include "_product_card.html" %}</div>
-  {% else %}
-    <div class="col-12"><div class="empty-state">Products will appear here after the shop owner adds them.</div></div>
-  {% endfor %}
-  </div>
-</section>
+    </div>
+  </section>
+</div>
 {% endblock %}
 {% block scripts %}
 {{ super() }}
@@ -91,6 +103,7 @@
     let rotationTimer;
 
     const fitCarouselToImage = (slide) => {
+      if (shopCarousel.classList.contains("launch-carousel")) return;
       if (!slide.naturalWidth || !slide.naturalHeight) return;
       const imageHeight = shopCarousel.clientWidth * slide.naturalHeight / slide.naturalWidth;
       shopCarousel.style.height = `${imageHeight}px`;
